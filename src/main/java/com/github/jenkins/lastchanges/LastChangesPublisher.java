@@ -24,6 +24,7 @@
 package com.github.jenkins.lastchanges;
 
 import com.github.jenkins.lastchanges.impl.GitLastChanges;
+import com.github.jenkins.lastchanges.impl.MultiScmLastChanges;
 import com.github.jenkins.lastchanges.impl.SvnLastChanges;
 import com.github.jenkins.lastchanges.model.FormatType;
 import com.github.jenkins.lastchanges.model.LastChanges;
@@ -32,7 +33,11 @@ import com.github.jenkins.lastchanges.model.MatchingType;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.*;
+import hudson.model.AbstractProject;
+import hudson.model.Action;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SubversionSCM;
 import hudson.tasks.BuildStepDescriptor;
@@ -41,6 +46,7 @@ import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.ListBoxModel;
 import jenkins.tasks.SimpleBuildStep;
+import org.jenkinsci.plugins.multiplescms.MultiSCM;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
@@ -96,9 +102,10 @@ public class LastChangesPublisher extends Recorder implements SimpleBuildStep {
 
         boolean isGit = ((AbstractProject) lastChangesProjectAction.getProject()).getScm() instanceof GitSCM;
         boolean isSvn = ((AbstractProject) lastChangesProjectAction.getProject()).getScm() instanceof SubversionSCM;
+        boolean isMultiScm = ((AbstractProject) lastChangesProjectAction.getProject()).getScm() instanceof MultiSCM;
 
-        if (!isGit && !isSvn) {
-            throw new RuntimeException("Git or Svn must be configured on your job to publish Last Changes.");
+        if (!isGit && !isSvn && !isMultiScm) {
+            throw new RuntimeException("Git/Svn/MultiSCM must be configured on your job to publish Last Changes.");
         }
 
         FilePath workspaceTargetDir = getMasterWorkspaceDir(build);//always on master
@@ -107,16 +114,22 @@ public class LastChangesPublisher extends Recorder implements SimpleBuildStep {
             LastChanges lastChanges = null;
             listener.getLogger().println("Publishing build last changes...");
             if (isGit) {
+                //gitDir is the path to the .git file
                 FilePath gitDir = workspace.child(GIT_DIR).exists() ? workspace.child(GIT_DIR) : findGitDir(workspace);
                 // workspace can be on slave so copy resources to master
                 // we are only copying when on git because in svn we are reading
                 // the revision from remote repository
                 gitDir.copyRecursiveTo("**/*", new FilePath(new File(workspaceTargetDir.getRemote() + "/.git")));
                 lastChanges = GitLastChanges.getInstance().changesOf(repository(workspaceTargetDir.getRemote() + "/.git"));
-            } else {
+            } else if (isSvn){
                 AbstractProject<?, ?> rootProject = (AbstractProject<?, ?>) lastChangesProjectAction.getProject();
                 SubversionSCM scm = SubversionSCM.class.cast(rootProject.getScm());
                 lastChanges = SvnLastChanges.getInstance().changesOf(SvnLastChanges.repository(scm, rootProject));
+            } else {
+                //Todo: configure for multiSCM. Take into account that slaves may be configured
+                AbstractProject<?, ?> rootProject = (AbstractProject<?, ?>) lastChangesProjectAction.getProject();
+                MultiSCM multiSCM = MultiSCM.class.cast(rootProject.getScm());
+                MultiScmLastChanges.getInstance().changesOf(MultiScmLastChanges.repositories(workspaceTargetDir.getRemote())); //finds repos using the root path
             }
 
             listener.hyperlink("../" + build.getNumber() + "/" + LastChangesBaseAction.BASE_URL, "Last changes published successfully!");
