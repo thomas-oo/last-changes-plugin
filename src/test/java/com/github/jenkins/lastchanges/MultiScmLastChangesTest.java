@@ -12,6 +12,7 @@ import org.junit.runners.JUnit4;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
@@ -35,11 +36,13 @@ public class MultiScmLastChangesTest {
     public void shouldInitRepositories() {
         Map<String, Repository> repositoryMap = MultiScmLastChanges.repositories(projectPath);
         assertNotNull(repositoryMap);
+        assertEquals(3,repositoryMap.size());
     }
 
     @Test
     public void shouldGetLastChangesFromGitRepositories() {
         Set<LastChanges> lastChangesSet = MultiScmLastChanges.getInstance().changesOf(MultiScmLastChanges.repositories(projectPath));
         assertFalse(lastChangesSet.isEmpty());
+        assertEquals(3, lastChangesSet.size());
     }
 }

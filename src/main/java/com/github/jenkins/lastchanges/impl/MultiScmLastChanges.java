@@ -8,9 +8,17 @@ import com.github.jenkins.lastchanges.exception.GitTreeParseException;
 import com.github.jenkins.lastchanges.exception.RepositoryNotFoundException;
 import com.github.jenkins.lastchanges.model.CommitInfo;
 import com.github.jenkins.lastchanges.model.LastChanges;
+import hudson.plugins.git.BranchSpec;
+import hudson.plugins.git.GitSCM;
+import hudson.plugins.git.SubmoduleConfig;
+import hudson.plugins.git.UserRemoteConfig;
+import hudson.plugins.git.extensions.GitSCMExtension;
+import hudson.plugins.git.extensions.impl.DisableRemotePoll;
+import hudson.scm.SCM;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
+import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
@@ -21,8 +29,11 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,13 +54,8 @@ public class MultiScmLastChanges{
         return instance;
     }
 
-    /**
-     * Traverses all folders and find git repos, returning them in a map.
-     *
-     * @param path Path that holds multiple git repos. May be a remote path
-     * @return Git repositories from location path
-     */
-    public static Map<String,Repository> repositories(String path){
+    //Todo: refactor and put into a utility class. Change expections
+    public static List<String> findPathsOfGitRepos(String path){
         if (path == null || path.isEmpty()) {
             throw new RepositoryNotFoundException("Git repository path cannot be empty.");
         }
@@ -60,7 +66,7 @@ public class MultiScmLastChanges{
             throw new RepositoryNotFoundException(String.format("Git repository path not found at location %s.", projectDir));
         }
 
-        Map<String, Repository> repositoryMap = new HashMap<>();
+        List<String> repositoryPaths = new ArrayList<>();
 
         //All subdirectories of repositoryPath
         File[] directories = projectDir.listFiles(new FileFilter() {
@@ -74,19 +80,59 @@ public class MultiScmLastChanges{
         //See if this folder has a .git subfolder. If so, return a map with the parent folder name and repo.
         for(File file : directories){
             if(file.getName().equalsIgnoreCase(".git")){
-                Repository repository = GitLastChanges.repository(file.getAbsolutePath());
-                String parentFolder = projectDir.getName();
-                repositoryMap.put(parentFolder, repository);
-                return repositoryMap;
+                repositoryPaths.add(file.getAbsolutePath());
             }
         }
 
         //There are no .git subfolders, recursively look into subdirectories for git repos
         for(File directory : directories){
-            Map<String, Repository> reposInDirectory = repositories(directory.getAbsolutePath());
-            if (reposInDirectory!= null){
+            List<String> repoPathsInDirectory = findPathsOfGitRepos(directory.getAbsolutePath());
+            if (repoPathsInDirectory!= null){
                 //add git repos from subdirectories
-                repositoryMap.putAll(reposInDirectory);
+                repositoryPaths.addAll(repoPathsInDirectory);
+            }
+        }
+        return repositoryPaths.isEmpty() ? null : repositoryPaths;
+    }
+
+    //Todo: refactor and put into a utility class
+    public static List<SCM> getSCMs(String path){
+        List<String> repoPaths = findPathsOfGitRepos(path);
+        List<SCM> scms = new ArrayList<>();
+
+        for(String repoPath : repoPaths) {
+            List<UserRemoteConfig> remoteConfigs = new ArrayList<UserRemoteConfig>();
+            remoteConfigs.add(new UserRemoteConfig(repoPath, "origin", "", null));
+            List<BranchSpec> branches = new ArrayList<>();
+            branches.add(new BranchSpec("master"));
+            GitSCM scm = new GitSCM(remoteConfigs, branches, false,
+                    Collections.<SubmoduleConfig>emptyList(), null, null,
+                    Collections.<GitSCMExtension>singletonList(new DisableRemotePoll()));
+            scms.add(scm);
+        }
+        return scms;
+    }
+
+    /**
+     * Traverses all folders and find git repos, returning them in a map.
+     *
+     * @param path Path that holds multiple git repos. May be a remote path
+     * @return Git repositories from location path
+     */
+    public static Map<String,Repository> repositories(String path){
+        List<String> repoPaths = findPathsOfGitRepos(path);
+        Map<String, Repository> repositoryMap = new HashMap<>();
+        for(String repoPath : repoPaths){
+            File repoFile = new File(repoPath);
+            Repository repository;
+            try {
+                repository = new FileRepository(repoPath);
+                repositoryMap.put(repoFile.getParent(),repository);
+            } catch (IOException e) {
+                throw new RepositoryNotFoundException("Could not find git repository at " + path);
+            }
+            if (repository.isBare()) {
+                throw new RepositoryNotFoundException(String.format("No git repository found at %s.", path));
             }
         }
         return repositoryMap.isEmpty() ? null : repositoryMap;
