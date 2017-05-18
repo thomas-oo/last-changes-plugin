@@ -14,6 +14,7 @@ import hudson.plugins.git.SubmoduleConfig;
 import hudson.plugins.git.UserRemoteConfig;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.DisableRemotePoll;
+import hudson.plugins.git.extensions.impl.RelativeTargetDirectory;
 import hudson.scm.SCM;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -77,7 +78,7 @@ public class MultiScmLastChanges{
         });
 
         //Todo: refactor w/ code in publisher
-        //See if this folder has a .git subfolder. If so, return a map with the parent folder name and repo.
+        //See if this folder has a .git subfolder
         for(File file : directories){
             if(file.getName().equalsIgnoreCase(".git")){
                 repositoryPaths.add(file.getAbsolutePath());
@@ -101,13 +102,17 @@ public class MultiScmLastChanges{
         List<SCM> scms = new ArrayList<>();
 
         for(String repoPath : repoPaths) {
+            File repoFile = new File(repoPath);
             List<UserRemoteConfig> remoteConfigs = new ArrayList<UserRemoteConfig>();
             remoteConfigs.add(new UserRemoteConfig(repoPath, "origin", "", null));
             List<BranchSpec> branches = new ArrayList<>();
             branches.add(new BranchSpec("master"));
+            List<GitSCMExtension> extensions = new ArrayList<>();
+            extensions.add(new DisableRemotePoll());
+            extensions.add(new RelativeTargetDirectory(repoFile.getParentFile().getName()));//create and checkout git repos to a subfolder named: git folder's parent folder
             GitSCM scm = new GitSCM(remoteConfigs, branches, false,
                     Collections.<SubmoduleConfig>emptyList(), null, null,
-                    Collections.<GitSCMExtension>singletonList(new DisableRemotePoll()));
+                    extensions);
             scms.add(scm);
         }
         return scms;

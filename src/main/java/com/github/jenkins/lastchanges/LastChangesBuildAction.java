@@ -1,21 +1,31 @@
 package com.github.jenkins.lastchanges;
 
-import java.io.File;
-
 import com.github.jenkins.lastchanges.model.LastChanges;
 import com.github.jenkins.lastchanges.model.LastChangesConfig;
-
 import hudson.model.Run;
+
+import java.io.File;
+import java.util.Set;
 
 public class LastChangesBuildAction extends LastChangesBaseAction {
 
     private final Run<?, ?> build;
     private LastChanges buildChanges;
+    private Set<LastChanges> allBuildChanges;
     private LastChangesConfig config;
 
     public LastChangesBuildAction(Run<?, ?> build, LastChanges lastChanges, LastChangesConfig config) {
         this.build = build;
         buildChanges = lastChanges;
+        if (config == null) {
+            config = new LastChangesConfig();
+        }
+        this.config = config;
+    }
+
+    public LastChangesBuildAction(Run<?, ?> build, Set<LastChanges> lastChanges, LastChangesConfig config) {
+        this.build = build;
+        allBuildChanges = lastChanges;
         if (config == null) {
             config = new LastChangesConfig();
         }
@@ -42,6 +52,10 @@ public class LastChangesBuildAction extends LastChangesBaseAction {
 
     public LastChangesConfig getConfig() {
         return config;
+    }
+
+    public Set<LastChanges> getAllBuildChanges(){
+        return allBuildChanges;
     }
 
 

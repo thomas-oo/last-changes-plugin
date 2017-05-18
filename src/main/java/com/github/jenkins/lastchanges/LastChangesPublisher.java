@@ -52,6 +52,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.Set;
 
 import static com.github.jenkins.lastchanges.impl.GitLastChanges.repository;
 
@@ -112,6 +114,7 @@ public class LastChangesPublisher extends Recorder implements SimpleBuildStep {
 
         try {
             LastChanges lastChanges = null;
+            Set<LastChanges> lastChangesSet = new HashSet<>();
             listener.getLogger().println("Publishing build last changes...");
             if (isGit) {
                 //gitDir is the path to the .git file
@@ -127,15 +130,21 @@ public class LastChangesPublisher extends Recorder implements SimpleBuildStep {
                 lastChanges = SvnLastChanges.getInstance().changesOf(SvnLastChanges.repository(scm, rootProject));
             } else {
                 //Todo: configure for multiSCM. Take into account that slaves may be configured
-                AbstractProject<?, ?> rootProject = (AbstractProject<?, ?>) lastChangesProjectAction.getProject();
-                MultiSCM multiSCM = MultiSCM.class.cast(rootProject.getScm());
-                MultiScmLastChanges.getInstance().changesOf(MultiScmLastChanges.repositories(workspaceTargetDir.getRemote())); //finds repos using the root path
+//                AbstractProject<?, ?> rootProject = (AbstractProject<?, ?>) lastChangesProjectAction.getProject();
+//                MultiSCM multiSCM = MultiSCM.class.cast(rootProject.getScm());
+//                lastChangesSet = MultiScmLastChanges.getInstance().changesOf(MultiScmLastChanges.repositories(workspaceTargetDir.getRemote())); //finds repos using the root path
+                lastChangesSet = MultiScmLastChanges.getInstance().changesOf(MultiScmLastChanges.repositories(workspace.getRemote()));
             }
 
             listener.hyperlink("../" + build.getNumber() + "/" + LastChangesBaseAction.BASE_URL, "Last changes published successfully!");
             listener.getLogger().println("");
-            build.addAction(new LastChangesBuildAction(build, lastChanges,
-                    new LastChangesConfig(format, matching, showFiles, synchronisedScroll, matchWordsThreshold, matchingMaxComparisons)));
+            if(!isMultiScm){
+                build.addAction(new LastChangesBuildAction(build, lastChanges,
+                        new LastChangesConfig(format, matching, showFiles, synchronisedScroll, matchWordsThreshold, matchingMaxComparisons)));
+            }else{
+                build.addAction(new LastChangesBuildAction(build, lastChangesSet,
+                        new LastChangesConfig(format, matching, showFiles, synchronisedScroll, matchWordsThreshold, matchingMaxComparisons)));
+            }
         } catch (Exception e) {
             listener.error("Last Changes NOT published due to the following error: " + e.getMessage() + (e.getCause() != null ? " - " + e.getCause() : ""));
             e.printStackTrace();

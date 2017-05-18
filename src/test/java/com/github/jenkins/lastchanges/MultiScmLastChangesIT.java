@@ -39,10 +39,7 @@ public class MultiScmLastChangesIT {
     public void shouldGetLastChangesOfMultiScmRepository() throws Exception {
         //Create a jenkins freestyle project
         FreeStyleProject project = jenkins.createFreeStyleProject("MultiScmJob");
-//        Map<String, Repository> repositoryMap = MultiScmLastChanges.repositories(projectPath);
-//        Collection<Repository> repositorySet = repositoryMap.values();
-//        List<Repository> gitRepos = new ArrayList<>(repositorySet);
-        //with the project tracking the git repos in projectPath
+        //gets repos in projectPath, and checks them out to a subdirectory in the workspace named parent eg. <parent>/.git/....
         List<SCM> scms = MultiScmLastChanges.getSCMs(projectPath);
         MultiSCM multiSCM = new MultiSCM(scms);
         project.setScm(multiSCM);
