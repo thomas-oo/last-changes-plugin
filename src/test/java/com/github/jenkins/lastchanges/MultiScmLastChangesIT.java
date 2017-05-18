@@ -34,7 +34,6 @@ public class MultiScmLastChangesIT {
 
     }
 
-    //Todo: find out how to checkout each repo into a sub-directory
     @Test
     public void shouldGetLastChangesOfMultiScmRepository() throws Exception {
         //Create a jenkins freestyle project

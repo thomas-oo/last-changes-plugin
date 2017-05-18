@@ -1,9 +1,9 @@
 <?jelly escape-by-default='false'?>
-<j:jelly trim="false" xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+<j:jelly trim="false" xmlns:j="jelly:core" xmlns:l="/lib/layout"
+>
     <l:layout>
-    
-    <l:header>
+
+        <l:header>
             <link rel="stylesheet" type="text/css" href="${rootURL}/plugin/last-changes/css/github-9.5.0.min.css"/>
             <link rel="stylesheet" type="text/css" href="${rootURL}/plugin/last-changes/css/diff2html-2.0.1.min.css"/>
             <script type="text/javascript" src="${rootURL}/plugin/last-changes/js/jquery.min.js"/>
@@ -12,72 +12,73 @@
             <script type="text/javascript" src="${rootURL}/plugin/last-changes/js/diff2html-2.0.1.min.js"/>
             <script type="text/javascript" src="${rootURL}/plugin/last-changes/js/diff2html-ui-2.0.1.min.js"/>
             <script type="text/javascript" src="${rootURL}/plugin/last-changes/js/scala-9.5.0.min.js"/>
-    </l:header>
-    
-    <l:main-panel style="container-fluid;width:100%">
-            
+        </l:header>
+
+        <l:main-panel style="container-fluid;width:100%">
+
             <h2 style="text-align:center">View Last Changes of build #${it.build.number}</h2>
 
             <style>
                 .row{
-                    text-align:center!important;
+                text-align:center!important;
                 }
-                
+
                 #main-panel {
-                   margin-left:10px!important;	
+                margin-left:10px!important;
                 }
             </style>
             <script>
                 jQueryJenkins(document).ready(function() {
-                  var buildChanges = "${it.buildChanges.escapedDiff}";
-                  var sidePanelTD=document.getElementById('side-panel');
-                               if(sidePanelTD) {
-                                 sidePanelTD.parentNode.removeChild(sidePanelTD);
-                               }
+                var sidePanelTD=document.getElementById('side-panel');
+                if(sidePanelTD) {
+                sidePanelTD.parentNode.removeChild(sidePanelTD);
+                }
                 var diff2htmlUi = new Diff2HtmlUI({diff: buildChanges});
-
-                    diff2htmlUi.draw('#${it.config.format().getFormat()}', {
-                         inputFormat: 'json',
-                         outputFormat: '${it.config.format().getFormat()}',
-                         showFiles: ${it.config.showFiles()},
-                         synchronisedScroll: ${it.config.synchronisedScroll()},
-                         matchWordsThreshold: '${it.config.matchWordsThreshold()}',
-                         matchingMaxComparisons: '${it.config.matchingMaxComparisons()}',
-                         matching: '${it.config.matching().getMatching()}'
-                         }
-                        );
-                    diff2htmlUi.fileListCloseable('#${it.config.format().getFormat()}', false);
-                    diff2htmlUi.highlightCode('#${it.config.format().getFormat()}');
-
-                }); //end documentReady
-
-                
-
-
+                });
             </script>
 
-            <div style="width:100%; font-family: 'Source Sans Pro',sans-serif;">
-                    
-                <div class="d2h-file-header" style="text-align:center;margin: 0 auto;">
+            <div id="main" style="width:100%; font-family: 'Source Sans Pro',sans-serif;">
+                <table class="pane">
+                    <tbody id = "tableBody">
+                        <j:forEach items="${it.allBuildChanges}" var="changes">
+                            <tr class="build-row  single-line">
+                                <td class="build-row-cell">
+                                    <div class="d2h-file-header" style="text-align:center;margin: 0 auto;">
+                                        <b>Commit:</b> ${changes.commitInfo.commitId}
+                                        <br/>
+                                        <b>Author:</b> ${changes.commitInfo.commiterName}
+                                        <br/>
+                                        <b>E-mail:</b> ${changes.commitInfo.commiterEmail}
+                                        <br/>
+                                        <b>Date:</b> ${changes.commitInfo.commitDate}
+                                        <br/>
+                                        <b>Message:</b> ${changes.commitInfo.commitMessage}
+                                        <br/>
+                                    </div>
+                                    <div id="line-by-line" style="margin: 0 auto;"></div>
+                                    <script>
+                                        var diff = "line-by-line";
 
-                    <b>Commit:</b> ${it.buildChanges.commitInfo.commitId}
-                    <br/>
-                    <b>Author:</b> ${it.buildChanges.commitInfo.commiterName}
-                    <br/>
-                    <b>E-mail:</b> ${it.buildChanges.commitInfo.commiterEmail}
-                    <br/>
-                    <b>Date:</b> ${it.buildChanges.commitInfo.commitDate}
-                    <br/>
-                    <b>Message:</b> ${it.buildChanges.commitInfo.commitMessage}
-                    <br/>
-                </div>
-                <br/>
-                <div id="line-by-line" style="margin: 0 auto;">
-                </div>
+                                        var buildChanges = "${changes.escapedDiff}";
+                                        var diff2htmlUi = new Diff2HtmlUI({diff: buildChanges});
 
-                <div id="side-by-side" style="margin: 0 auto;">
-                </div>
+                                        diff2htmlUi.draw('#diff', {
+                                        inputFormat: 'json',
+                                        outputFormat: '${it.config.format().getFormat()}',
+                                        showFiles: ${it.config.showFiles()},
+                                        synchronisedScroll: ${it.config.synchronisedScroll()},
+                                        matchWordsThreshold: '${it.config.matchWordsThreshold()}',
+                                        matchingMaxComparisons: '${it.config.matchingMaxComparisons()}',
+                                        matching: '${it.config.matching().getMatching()}'});
 
+                                        diff2htmlUi.fileListCloseable('#diff', false);
+                                        diff2htmlUi.highlightCode('#diff');
+                                    </script>
+                                </td>
+                            </tr>
+                        </j:forEach>
+                    </tbody>
+                </table>
             </div>
         </l:main-panel>
 
