@@ -10,13 +10,11 @@ import org.junit.runners.JUnit4;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import static com.github.jenkins.lastchanges.impl.GitLastChanges.repository;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 /**
  * Created by rmpestano on 6/5/16.
@@ -39,35 +37,9 @@ public class GitLastChangesTest {
     }
 
     @Test
-    public void shouldInitRepository() {
-        assertNotNull(repository(gitRepoPath));
-    }
-
-    @Test
-    public void shouldNotInitRepositoryWithBlankPath() {
-        try {
-            repository("");
-        } catch (RuntimeException e) {
-            assertEquals("Git repository path cannot be empty.", e.getMessage());
-        }
-    }
-
-    @Test
-    public void shouldNotInitRepositoryWithNonExistingRepository() {
-        String repoPath = Paths.get("").toAbsolutePath().toString();
-        try {
-            repository(repoPath);
-        } catch (RuntimeException e) {
-            assertEquals(String.format("No git repository found at %s.", repoPath), e.getMessage());
-        }
-    }
-
-
-
-
-    @Test
     public void shouldGetLastChangesFromGitRepository() throws FileNotFoundException {
-        LastChanges lastChanges = GitLastChanges.getInstance().changesOf(repository(gitRepoPath));
+        GitLastChanges gitLastChanges = new GitLastChanges(gitRepoPath);
+        LastChanges lastChanges = gitLastChanges.getLastChanges();
         assertThat(lastChanges).isNotNull();
         assertThat(lastChanges.getCommitInfo()).isNotNull();
         assertThat(lastChanges.getCommitInfo().getCommitMessage()).isEqualTo("Added javadoc\n");
@@ -111,7 +83,8 @@ public class GitLastChangesTest {
         String repositoryLocation = GitLastChangesTest.class.getResource("/git-initial-commit-repo").getFile();
         File file = new File(repositoryLocation);
         try {
-            GitLastChanges.getInstance().changesOf(repository(repositoryLocation));
+            GitLastChanges gitLastChanges = new GitLastChanges(repositoryLocation);
+            LastChanges lastChanges = gitLastChanges.getLastChanges();
             fail("Should not get here");
         }catch (GitTreeNotFoundException e){
             assertThat(e.getMessage()).isEqualTo(String.format("Could not find previous head of repository located at %s. Its your first commit?",file.getAbsolutePath()));

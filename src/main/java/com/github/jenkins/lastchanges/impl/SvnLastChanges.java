@@ -13,10 +13,8 @@ import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationManager;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
-import org.tmatesoft.svn.core.internal.io.svn.SVNRepositoryFactoryImpl;
 import org.tmatesoft.svn.core.internal.wc2.ng.SvnDiffGenerator;
 import org.tmatesoft.svn.core.io.SVNRepository;
-import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNWCUtil;
@@ -31,55 +29,20 @@ import java.nio.charset.Charset;
 
 public class SvnLastChanges implements VCSChanges<SVNRepository, Long> {
 
-    private static SvnLastChanges instance;
+    private AbstractProject<?, ?> rootProject;
+    private SubversionSCM scm;
 
-    public static SvnLastChanges getInstance() {
-        if (instance == null) {
-            instance = new SvnLastChanges();
-        }
-        return instance;
+    public SvnLastChanges(AbstractProject<?, ?> rootProject, SubversionSCM scm) {
+        this.rootProject = rootProject;
+        this.scm = scm;
     }
 
-    /**
-     * @deprecated used for unit test only
-     * @param path
-     *            local svn repository path
-     * @return underlying svn repository from location path
-     * 
-     * @see SvnLastChanges#repository(SubversionSCM, AbstractProject)
-     */
-    public static SVNRepository repository(String path) {
-        if (path == null || path.isEmpty()) {
-            throw new RepositoryNotFoundException("Svn repository path cannot be empty.");
-        }
-
-        try {
-            SVNRepositoryFactoryImpl.setup();
-            SVNRepository svnRepository = SVNRepositoryFactory.create(SVNURL.parseURIEncoded(path));
-            /*
-             * ISVNAuthenticationManager authManager =
-             * SVNWCUtil.createDefaultAuthenticationManager( "anonymous" ,
-             * "anonymous"); svnRepository.setAuthenticationManager( authManager
-             * );
-             */
-
-            // FSRepositoryFactory.setup(); //not working, throws svn: E180001:
-            // Unable to open an ra_local session to URL
-            // SVNURL svnurl = SVNURL.fromFile(filePath);
-            // SVNRepository svnRepository = FSRepositoryFactory.create(svnurl);
-            // SVNRepository svnRepository =
-            // SVNRepositoryFactory.create(SVNURL.fromFile(filePath));
-
-            return svnRepository;
-        } catch (Exception e) {
-            throw new RepositoryNotFoundException("Could not find svn repository at " + path, e);
-
-        }
-
+    @Override
+    public LastChanges getLastChanges() {
+        return getLastChangesOf(getRepository());
     }
 
-    public static SVNRepository repository(SubversionSCM scm, AbstractProject<?, ?> rootProject) {
-        
+    public SVNRepository getRepository() {
         String path = null;
         try {
             path = scm.getLocations()[0].getURL();
@@ -108,7 +71,7 @@ public class SvnLastChanges implements VCSChanges<SVNRepository, Long> {
      * @return LastChanges commit info and svn diff
      */
     @Override
-    public LastChanges changesOf(SVNRepository repository) {
+    public LastChanges getLastChangesOf(SVNRepository repository) {
          try {
             return changesOf(repository, repository.getLatestRevision(), repository.getLatestRevision() - 1);
         } catch (SVNException e) {

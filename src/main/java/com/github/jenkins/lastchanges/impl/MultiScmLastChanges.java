@@ -36,7 +36,7 @@ public class MultiScmLastChanges {
      * @return A set of LastChanges for every git repo in path
      */
     public Set<LastChanges> getLastChanges(){
-        return getChangesOf(repositories(this.projectPath));
+        return getLastChangesOf(repositories(this.projectPath));
     }
 
     /**
@@ -69,7 +69,7 @@ public class MultiScmLastChanges {
      * @param repositories A map of a git path to a repository object
      * @return A set of LastChanges objects
      */
-    private Set<LastChanges> getChangesOf(Map<String, Repository> repositories) {
+    private Set<LastChanges> getLastChangesOf(Map<String, Repository> repositories) {
         Set<LastChanges> lastChangesSet = new HashSet<>();
         for(String key : repositories.keySet()){
             //Todo: include the key in the LastChanges object so we can use it

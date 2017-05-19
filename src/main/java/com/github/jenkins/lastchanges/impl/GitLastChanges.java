@@ -17,20 +17,17 @@ import java.io.IOException;
 public class GitLastChanges implements VCSChanges<Repository, ObjectId> {
 
 
-    private static GitLastChanges instance;
+    private String projectPath;
 
 
-    private GitLastChanges() {
+    public GitLastChanges(String projectPath) {
+        this.projectPath = projectPath;
     }
 
-    public static GitLastChanges getInstance(){
-        if(instance == null){
-            instance = new GitLastChanges();
-        }
-
-        return instance;
+    @Override
+    public LastChanges getLastChanges() {
+        return getLastChangesOf(repository(this.projectPath));
     }
-
 
     /**
      * @param path local git repository path
@@ -61,7 +58,6 @@ public class GitLastChanges implements VCSChanges<Repository, ObjectId> {
 
     }
 
-
     /**
      * Creates last changes from repository last two revisions
      *
@@ -69,7 +65,7 @@ public class GitLastChanges implements VCSChanges<Repository, ObjectId> {
      * @return LastChanges commit info and git diff
      */
     @Override
-    public LastChanges changesOf(Repository repository) {
+    public LastChanges getLastChangesOf(Repository repository) {
         return SCMUtils.changesOf(repository);
     }
 }

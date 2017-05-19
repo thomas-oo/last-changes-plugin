@@ -55,8 +55,6 @@ import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
 
-import static com.github.jenkins.lastchanges.impl.GitLastChanges.repository;
-
 /**
  * @author rmpestano
  */
@@ -123,11 +121,13 @@ public class LastChangesPublisher extends Recorder implements SimpleBuildStep {
                 // we are only copying when on git because in svn we are reading
                 // the revision from remote repository
                 gitDir.copyRecursiveTo("**/*", new FilePath(new File(workspaceTargetDir.getRemote() + "/.git")));
-                lastChanges = GitLastChanges.getInstance().changesOf(repository(workspaceTargetDir.getRemote() + "/.git"));
+                GitLastChanges gitLastChanges = new GitLastChanges(workspaceTargetDir.getRemote() + "/.git");
+                lastChanges = gitLastChanges.getLastChanges();
             } else if (isSvn){
                 AbstractProject<?, ?> rootProject = (AbstractProject<?, ?>) lastChangesProjectAction.getProject();
                 SubversionSCM scm = SubversionSCM.class.cast(rootProject.getScm());
-                lastChanges = SvnLastChanges.getInstance().changesOf(SvnLastChanges.repository(scm, rootProject));
+                SvnLastChanges svnLastChanges = new SvnLastChanges(rootProject, scm);
+                lastChanges = svnLastChanges.getLastChanges();
             } else {
                 MultiScmLastChanges multiScmLastChanges = new MultiScmLastChanges(workspace.getRemote());
                 lastChangesSet = multiScmLastChanges.getLastChanges();

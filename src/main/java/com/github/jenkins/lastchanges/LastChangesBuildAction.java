@@ -5,6 +5,7 @@ import com.github.jenkins.lastchanges.model.LastChangesConfig;
 import hudson.model.Run;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.Set;
 
 public class LastChangesBuildAction extends LastChangesBaseAction {
@@ -17,6 +18,8 @@ public class LastChangesBuildAction extends LastChangesBaseAction {
     public LastChangesBuildAction(Run<?, ?> build, LastChanges lastChanges, LastChangesConfig config) {
         this.build = build;
         buildChanges = lastChanges;
+        allBuildChanges = new HashSet<>();
+        allBuildChanges.add(buildChanges);
         if (config == null) {
             config = new LastChangesConfig();
         }
