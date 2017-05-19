@@ -55,14 +55,14 @@
                                         <b>Message:</b> ${changes.commitInfo.commitMessage}
                                         <br/>
                                     </div>
-                                    <div id="line-by-line" style="margin: 0 auto;"></div>
+                                    <div id="${changes.commitInfo.commitId}" style="margin: 0 auto;"></div>
                                     <script>
-                                        var diff = "line-by-line";
+                                        var diff = "${changes.commitInfo.commitId}";
 
                                         var buildChanges = "${changes.escapedDiff}";
                                         var diff2htmlUi = new Diff2HtmlUI({diff: buildChanges});
 
-                                        diff2htmlUi.draw('#diff', {
+                                        diff2htmlUi.draw('#${changes.commitInfo.commitId}', {
                                         inputFormat: 'json',
                                         outputFormat: '${it.config.format().getFormat()}',
                                         showFiles: ${it.config.showFiles()},
