@@ -123,7 +123,6 @@ public class SvnLastChanges implements VCSChanges<SVNRepository, Long> {
      *            svn repository to get last changes
      * @return LastChanges commit info and svn diff
      */
-    @Override
     public LastChanges changesOf(SVNRepository repository, Long currentRevision, Long previousRevision) {
     	ByteArrayOutputStream diffStream = null;
         try {

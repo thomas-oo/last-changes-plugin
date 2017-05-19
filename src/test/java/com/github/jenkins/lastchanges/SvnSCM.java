@@ -49,7 +49,6 @@ public class SvnSCM extends SubversionSCM {
     
     @Override
     public hudson.scm.SubversionSCM.DescriptorImpl getDescriptor() {
-    	// TODO Auto-generated method stub
     	return new DescriptorImpl();
     }
     

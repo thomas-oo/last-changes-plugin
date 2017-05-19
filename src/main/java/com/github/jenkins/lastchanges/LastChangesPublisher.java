@@ -129,11 +129,7 @@ public class LastChangesPublisher extends Recorder implements SimpleBuildStep {
                 SubversionSCM scm = SubversionSCM.class.cast(rootProject.getScm());
                 lastChanges = SvnLastChanges.getInstance().changesOf(SvnLastChanges.repository(scm, rootProject));
             } else {
-                //Todo: configure for multiSCM. Take into account that slaves may be configured
-//                AbstractProject<?, ?> rootProject = (AbstractProject<?, ?>) lastChangesProjectAction.getProject();
-//                MultiSCM multiSCM = MultiSCM.class.cast(rootProject.getScm());
-//                lastChangesSet = MultiScmLastChanges.getInstance().changesOf(MultiScmLastChanges.repositories(workspaceTargetDir.getRemote())); //finds repos using the root path
-                lastChangesSet = MultiScmLastChanges.getInstance().changesOf(MultiScmLastChanges.repositories(workspace.getRemote()));
+                lastChangesSet = MultiScmLastChanges.getInstance().getChangesOf(workspace.getRemote());
             }
 
             listener.hyperlink("../" + build.getNumber() + "/" + LastChangesBaseAction.BASE_URL, "Last changes published successfully!");

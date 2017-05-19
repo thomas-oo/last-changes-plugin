@@ -2,19 +2,16 @@ package com.github.jenkins.lastchanges;
 
 import com.github.jenkins.lastchanges.impl.MultiScmLastChanges;
 import com.github.jenkins.lastchanges.model.LastChanges;
-import org.eclipse.jgit.lib.Repository;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 
 @RunWith(JUnit4.class)
 public class MultiScmLastChangesTest {
@@ -33,15 +30,8 @@ public class MultiScmLastChangesTest {
     }
 
     @Test
-    public void shouldInitRepositories() {
-        Map<String, Repository> repositoryMap = MultiScmLastChanges.repositories(projectPath);
-        assertNotNull(repositoryMap);
-        assertEquals(3,repositoryMap.size());
-    }
-
-    @Test
     public void shouldGetLastChangesFromGitRepositories() {
-        Set<LastChanges> lastChangesSet = MultiScmLastChanges.getInstance().changesOf(MultiScmLastChanges.repositories(projectPath));
+        Set<LastChanges> lastChangesSet = MultiScmLastChanges.getInstance().getChangesOf(projectPath);
         assertFalse(lastChangesSet.isEmpty());
         assertEquals(3, lastChangesSet.size());
     }
