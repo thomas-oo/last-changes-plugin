@@ -4,6 +4,7 @@ import com.github.jenkins.lastchanges.exception.CommitInfoException;
 import com.github.jenkins.lastchanges.exception.GitDiffException;
 import com.github.jenkins.lastchanges.exception.GitTreeNotFoundException;
 import com.github.jenkins.lastchanges.exception.GitTreeParseException;
+import com.github.jenkins.lastchanges.exception.RepositoryNotFoundException;
 import com.github.jenkins.lastchanges.model.CommitInfo;
 import com.github.jenkins.lastchanges.model.LastChanges;
 import org.eclipse.jgit.api.Git;
@@ -15,8 +16,12 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by root on 5/19/17.
@@ -111,6 +116,49 @@ public class SCMUtils {
                 repository.close();
             }
         }
+    }
 
+    /**
+     * Utility method to find all git folders in path
+     * @param path A parent folder path
+     * @return A list of the .git file paths found in path
+     */
+    public static List<String> findPathsOfGitRepos(String path){
+        if (path == null || path.isEmpty()) {
+            throw new RepositoryNotFoundException("MultiScm repository path cannot be empty.");
+        }
+
+        File projectDir = new File(path);
+
+        if(!projectDir.exists()) {
+            throw new RepositoryNotFoundException(String.format("MultiScm repository path not found at location %s.", projectDir));
+        }
+
+        List<String> repositoryPaths = new ArrayList<>();
+
+        //All subdirectories of repositoryPath
+        File[] directories = projectDir.listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File file) {
+                return file.isDirectory();
+            }
+        });
+
+        //See if this folder has a .git subfolder
+        for(File file : directories){
+            if(file.getName().equalsIgnoreCase(".git")){
+                repositoryPaths.add(file.getAbsolutePath());
+            }
+        }
+
+        //There are no .git subfolders, recursively look into subdirectories for git repos
+        for(File directory : directories){
+            List<String> repoPathsInDirectory = findPathsOfGitRepos(directory.getAbsolutePath());
+            if (repoPathsInDirectory!= null){
+                //add git repos from subdirectories
+                repositoryPaths.addAll(repoPathsInDirectory);
+            }
+        }
+        return repositoryPaths.isEmpty() ? null : repositoryPaths;
     }
 }

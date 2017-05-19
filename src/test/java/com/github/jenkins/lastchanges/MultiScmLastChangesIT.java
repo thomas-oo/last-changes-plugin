@@ -1,6 +1,6 @@
 package com.github.jenkins.lastchanges;
 
-import com.github.jenkins.lastchanges.impl.MultiScmLastChanges;
+import com.github.jenkins.lastchanges.impl.SCMUtils;
 import com.github.jenkins.lastchanges.model.FormatType;
 import com.github.jenkins.lastchanges.model.MatchingType;
 import hudson.model.FreeStyleBuild;
@@ -68,7 +68,7 @@ public class MultiScmLastChangesIT {
      * @return
      */
     public static List<SCM> getSCMs(String path){
-        List<String> repoPaths = MultiScmLastChanges.findPathsOfGitRepos(path);
+        List<String> repoPaths = SCMUtils.findPathsOfGitRepos(path);
         List<SCM> scms = new ArrayList<>();
 
         for(String repoPath : repoPaths) {

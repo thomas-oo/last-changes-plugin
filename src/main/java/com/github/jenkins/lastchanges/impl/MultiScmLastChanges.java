@@ -7,9 +7,7 @@ import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.Repository;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -19,62 +17,26 @@ import java.util.Set;
 //Todo: Create a test suite
 public class MultiScmLastChanges {
 
-    private static MultiScmLastChanges instance;
+    private String projectPath;
 
-
-    private MultiScmLastChanges() {
+    public MultiScmLastChanges(String projectPath) {
+        this.projectPath = projectPath;
     }
 
-    public static MultiScmLastChanges getInstance(){
-        if(instance == null){
-            instance = new MultiScmLastChanges();
-        }
+    public String getProjectPath() {
+        return projectPath;
+    }
 
-        return instance;
+    public void setProjectPath(String projectPath) {
+        this.projectPath = projectPath;
     }
 
     /**
-     * Utility method to find all git folders in path
-     * @param path A parent folder path
-     * @return A list of the .git file paths found in path
+     *
+     * @return A set of LastChanges for every git repo in path
      */
-    public static List<String> findPathsOfGitRepos(String path){
-        if (path == null || path.isEmpty()) {
-            throw new RepositoryNotFoundException("MultiScm repository path cannot be empty.");
-        }
-
-        File projectDir = new File(path);
-
-        if(!projectDir.exists()) {
-            throw new RepositoryNotFoundException(String.format("MultiScm repository path not found at location %s.", projectDir));
-        }
-
-        List<String> repositoryPaths = new ArrayList<>();
-
-        //All subdirectories of repositoryPath
-        File[] directories = projectDir.listFiles(new FileFilter() {
-            @Override
-            public boolean accept(File file) {
-                return file.isDirectory();
-            }
-        });
-
-        //See if this folder has a .git subfolder
-        for(File file : directories){
-            if(file.getName().equalsIgnoreCase(".git")){
-                repositoryPaths.add(file.getAbsolutePath());
-            }
-        }
-
-        //There are no .git subfolders, recursively look into subdirectories for git repos
-        for(File directory : directories){
-            List<String> repoPathsInDirectory = findPathsOfGitRepos(directory.getAbsolutePath());
-            if (repoPathsInDirectory!= null){
-                //add git repos from subdirectories
-                repositoryPaths.addAll(repoPathsInDirectory);
-            }
-        }
-        return repositoryPaths.isEmpty() ? null : repositoryPaths;
+    public Set<LastChanges> getLastChanges(){
+        return getChangesOf(repositories(this.projectPath));
     }
 
     /**
@@ -84,7 +46,7 @@ public class MultiScmLastChanges {
      * @return A map of a the git paths to a repository object
      */
     private static Map<String,Repository> repositories(String path){
-        List<String> repoPaths = findPathsOfGitRepos(path);
+        List<String> repoPaths = SCMUtils.findPathsOfGitRepos(path);
         Map<String, Repository> repositoryMap = new HashMap<>();
         for(String repoPath : repoPaths){
             File repoFile = new File(repoPath);
@@ -99,7 +61,7 @@ public class MultiScmLastChanges {
                 throw new RepositoryNotFoundException(String.format("No git repository found at %s.", path));
             }
         }
-        return repositoryMap.isEmpty() ? null : repositoryMap;
+        return repositoryMap;
     }
 
     /**
@@ -110,19 +72,11 @@ public class MultiScmLastChanges {
     private Set<LastChanges> getChangesOf(Map<String, Repository> repositories) {
         Set<LastChanges> lastChangesSet = new HashSet<>();
         for(String key : repositories.keySet()){
+            //Todo: include the key in the LastChanges object so we can use it
             Repository repository = repositories.get(key);
             LastChanges lastChanges = SCMUtils.changesOf(repository);
             lastChangesSet.add(lastChanges);
         }
         return lastChangesSet;
-    }
-
-    /**
-     *
-     * @param path Parent folder where you want to find all LastChanges objects
-     * @return A set of LastChanges for every git repo in path
-     */
-    public Set<LastChanges> getChangesOf(String path){
-        return getChangesOf(repositories(path));
     }
 }

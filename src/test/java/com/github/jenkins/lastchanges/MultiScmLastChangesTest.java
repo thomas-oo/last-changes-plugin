@@ -31,7 +31,8 @@ public class MultiScmLastChangesTest {
 
     @Test
     public void shouldGetLastChangesFromGitRepositories() {
-        Set<LastChanges> lastChangesSet = MultiScmLastChanges.getInstance().getChangesOf(projectPath);
+        MultiScmLastChanges multiScmLastChanges = new MultiScmLastChanges(projectPath);
+        Set<LastChanges> lastChangesSet = multiScmLastChanges.getLastChanges();
         assertFalse(lastChangesSet.isEmpty());
         assertEquals(3, lastChangesSet.size());
     }
