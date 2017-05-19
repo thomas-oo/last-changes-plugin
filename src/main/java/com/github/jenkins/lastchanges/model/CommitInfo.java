@@ -22,7 +22,7 @@ import java.util.logging.Logger;
  */
 public class CommitInfo {
 
-    private static final DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT);
+    public static final DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT);
     private static final String newLine = System.getProperty("line.separator");
 
     private String commitId;

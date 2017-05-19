@@ -1,10 +1,13 @@
 package com.github.jenkins.lastchanges;
 
+import com.github.jenkins.lastchanges.model.CommitInfo;
 import com.github.jenkins.lastchanges.model.LastChanges;
 import com.github.jenkins.lastchanges.model.LastChangesConfig;
 import hudson.model.Run;
 
 import java.io.File;
+import java.text.ParseException;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -24,6 +27,7 @@ public class LastChangesBuildAction extends LastChangesBaseAction {
             config = new LastChangesConfig();
         }
         this.config = config;
+        //removeOldCommitsFromAllBuildChanges();
     }
 
     public LastChangesBuildAction(Run<?, ?> build, Set<LastChanges> lastChanges, LastChangesConfig config) {
@@ -33,6 +37,7 @@ public class LastChangesBuildAction extends LastChangesBaseAction {
             config = new LastChangesConfig();
         }
         this.config = config;
+        //removeOldCommitsFromAllBuildChanges();
     }
 
     @Override
@@ -61,5 +66,20 @@ public class LastChangesBuildAction extends LastChangesBaseAction {
         return allBuildChanges;
     }
 
-
+    /**
+     * Will remove LastChanges that have a commit date earlier than the last build's time.
+     * Todo: Decide if this is a useful feature or not
+     */
+    private void removeOldCommitsFromAllBuildChanges(){
+        allBuildChanges.removeIf(l -> {
+            boolean notNewCommit = false; //default is no, don't remove
+            try {
+                Date commitDate = CommitInfo.dateFormat.parse(l.getCommitInfo().getCommitDate());
+                notNewCommit = commitDate.before(build.getPreviousBuild().getTime());
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            return notNewCommit;
+        });
+    }
 }

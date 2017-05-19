@@ -2,6 +2,7 @@ package com.github.jenkins.lastchanges;
 
 import com.github.jenkins.lastchanges.impl.SCMUtils;
 import com.github.jenkins.lastchanges.model.FormatType;
+import com.github.jenkins.lastchanges.model.LastChanges;
 import com.github.jenkins.lastchanges.model.MatchingType;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
@@ -24,7 +25,10 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
+import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class MultiScmLastChangesIT {
@@ -46,20 +50,29 @@ public class MultiScmLastChangesIT {
 
     @Test
     public void shouldGetLastChangesOfMultiScmRepository() throws Exception {
+        //Given
         //Create a jenkins freestyle project
         FreeStyleProject project = jenkins.createFreeStyleProject("MultiScmJob");
         //gets repos in projectPath, and checks them out to a subdirectory in the workspace named parent eg. <parent>/.git/....
         List<SCM> scms = getSCMs(projectPath);
         MultiSCM multiSCM = new MultiSCM(scms);
         project.setScm(multiSCM);
-
         //Hook up the post-build plugin (publisher) and save
         LastChangesPublisher publisher = new LastChangesPublisher(FormatType.LINE, MatchingType.NONE, true, false, "0.50","1500");
         project.getPublishersList().add(publisher);
         project.save();
 
+        //when
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         assertNotNull(build);
+
+        // then
+        LastChangesBuildAction action = build.getAction(LastChangesBuildAction.class);
+        assertThat(action).isNotNull();
+        Set<LastChanges> lastChanges = action.getAllBuildChanges();
+        assertThat(lastChanges).isNotNull();
+        assertThat(lastChanges).isNotNull();
+        assertEquals(3,lastChanges.size());
     }
 
     /**

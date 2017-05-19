@@ -132,7 +132,6 @@ public class LastChangesPublisher extends Recorder implements SimpleBuildStep {
                 MultiScmLastChanges multiScmLastChanges = new MultiScmLastChanges(workspace.getRemote());
                 lastChangesSet = multiScmLastChanges.getLastChanges();
             }
-
             listener.hyperlink("../" + build.getNumber() + "/" + LastChangesBaseAction.BASE_URL, "Last changes published successfully!");
             listener.getLogger().println("");
             if(!isMultiScm){

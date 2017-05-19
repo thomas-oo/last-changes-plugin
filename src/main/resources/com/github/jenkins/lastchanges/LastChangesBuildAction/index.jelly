@@ -72,8 +72,8 @@
                                         matchingMaxComparisons: '${it.config.matchingMaxComparisons()}',
                                         matching: '${it.config.matching().getMatching()}'});
 
-                                        diff2htmlUi.fileListCloseable("${changes.commitInfo.commitId}", false);
-                                        diff2htmlUi.highlightCode("${changes.commitInfo.commitId}");
+                                        diff2htmlUi.fileListCloseable("#${changes.commitInfo.commitId}", false);
+                                        diff2htmlUi.highlightCode("#${changes.commitInfo.commitId}");
                                     </script>
                                 </td>
                             </tr>
