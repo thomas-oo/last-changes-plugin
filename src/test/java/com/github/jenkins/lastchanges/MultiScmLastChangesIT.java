@@ -14,6 +14,7 @@ import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.DisableRemotePoll;
 import hudson.plugins.git.extensions.impl.RelativeTargetDirectory;
 import hudson.scm.SCM;
+import hudson.slaves.DumbSlave;
 import org.jenkinsci.plugins.multiplescms.MultiSCM;
 import org.junit.After;
 import org.junit.Before;
@@ -34,6 +35,8 @@ import static org.junit.Assert.assertNotNull;
 public class MultiScmLastChangesIT {
 
     final String projectPath = "/git/last_changes/last-changes-plugin/src/test/resources/git-multiple-git-repos";
+    final int expectedNumberOfBuildChanges = 3;
+    final String successfulPublish = "Last changes published successfully!";
 
     @Rule
     public JenkinsRule jenkins = new JenkinsRule();
@@ -72,7 +75,39 @@ public class MultiScmLastChangesIT {
         Set<LastChanges> lastChanges = action.getAllBuildChanges();
         assertThat(lastChanges).isNotNull();
         assertThat(lastChanges).isNotNull();
-        assertEquals(3,lastChanges.size());
+        assertEquals(expectedNumberOfBuildChanges,lastChanges.size());
+        jenkins.assertLogContains(successfulPublish, build);
+    }
+
+    @Test
+    public void shouldGetLastChangesOfMultiScmRepositoryOnSlaveNode() throws Exception {
+        //Given
+        //Create a jenkins freestyle project
+        FreeStyleProject project = jenkins.createFreeStyleProject("MultiScmJob-slave");
+        //gets repos in projectPath, and checks them out to a subdirectory in the workspace named parent eg. <parent>/.git/....
+        List<SCM> scms = getSCMs(projectPath);
+        MultiSCM multiSCM = new MultiSCM(scms);
+        project.setScm(multiSCM);
+        //Setup a slave node
+        DumbSlave slave = jenkins.createSlave();
+        project.setAssignedNode(slave);
+        //Hook up the post-build plugin (publisher) and save
+        LastChangesPublisher publisher = new LastChangesPublisher(FormatType.LINE, MatchingType.NONE, true, false, "0.50","1500");
+        project.getPublishersList().add(publisher);
+        project.save();
+
+        //when
+        FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
+        assertNotNull(build);
+
+        // then
+        LastChangesBuildAction action = build.getAction(LastChangesBuildAction.class);
+        assertThat(action).isNotNull();
+        Set<LastChanges> lastChanges = action.getAllBuildChanges();
+        assertThat(lastChanges).isNotNull();
+        assertThat(lastChanges).isNotNull();
+        assertEquals(expectedNumberOfBuildChanges,lastChanges.size());
+        jenkins.assertLogContains(successfulPublish, build);
     }
 
     /**

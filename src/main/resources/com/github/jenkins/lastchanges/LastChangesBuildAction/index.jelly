@@ -12,6 +12,31 @@
             <script type="text/javascript" src="${rootURL}/plugin/last-changes/js/diff2html-2.0.1.min.js"/>
             <script type="text/javascript" src="${rootURL}/plugin/last-changes/js/diff2html-ui-2.0.1.min.js"/>
             <script type="text/javascript" src="${rootURL}/plugin/last-changes/js/scala-9.5.0.min.js"/>
+
+            <script>
+                function hideRepo(hideButton, id){
+                    var parent = hideButton.parentElement;
+                    var showButton = parent.getElementsByClassName("repoShow")[0];
+                    hideButton.style.display = "none";
+                    showButton.style.display = "inline";
+
+                    var summary = parent.getElementsByClassName("d2h-file-header")[0];
+                    summary.style.display = "none";
+                    var repoDiff = document.getElementById(id);
+                    repoDiff.style.display = "none";
+                }
+                function showRepo(showButton, id){
+                    var parent = showButton.parentElement;
+                    var hideButton = parent.getElementsByClassName("repoHide")[0];
+                    showButton.style.display = "none";
+                    hideButton.style.display = "inline";
+
+                    var summary = parent.getElementsByClassName("d2h-file-header")[0];
+                    summary.style = "text-align:center;margin: 0 auto;";
+                    var repoDiff = document.getElementById(id);
+                    repoDiff.style.display = "inline";
+                }
+            </script>
         </l:header>
 
         <l:main-panel style="container-fluid;width:100%">
@@ -43,6 +68,8 @@
                         <j:forEach items="${it.allBuildChanges}" var="changes">
                             <tr class="build-row  single-line">
                                 <td class="build-row-cell">
+                                    <a class="repoHide" href="javascript:;" onclick="hideRepo(this,'${changes.commitInfo.commitId}')" style="float:left;" >Hide repo</a>
+                                    <a class="repoShow" href="javascript:;" onclick="showRepo(this,'${changes.commitInfo.commitId}')" style = "display:none; float:left;">Show repo | Message: ${changes.commitInfo.commitMessage}</a>
                                     <div class="d2h-file-header" style="text-align:center;margin: 0 auto;">
                                         <b>Commit:</b> ${changes.commitInfo.commitId}
                                         <br/>
