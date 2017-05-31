@@ -1,0 +1,121 @@
+<?jelly escape-by-default='false'?>
+<j:jelly trim="false" xmlns:j="jelly:core" xmlns:l="/lib/layout"
+>
+    <l:layout>
+
+        <l:header>
+            <link rel="stylesheet" type="text/css" href="${rootURL}/plugin/multi-last-changes/css/github-9.5.0.min.css"/>
+            <link rel="stylesheet" type="text/css" href="${rootURL}/plugin/multi-last-changes/css/diff2html-2.0.1.min.css"/>
+            <script type="text/javascript" src="${rootURL}/plugin/multi-last-changes/js/jquery.min.js"/>
+            <script type="text/javascript">window.jQueryJenkins = jQuery.noConflict();</script>
+            <script type="text/javascript" src="${rootURL}/plugin/multi-last-changes/js/highlightjs-9.5.0.min.js"/>
+            <script type="text/javascript" src="${rootURL}/plugin/multi-last-changes/js/diff2html-2.0.1.min.js"/>
+            <script type="text/javascript" src="${rootURL}/plugin/multi-last-changes/js/diff2html-ui-2.0.1.min.js"/>
+            <script type="text/javascript" src="${rootURL}/plugin/multi-last-changes/js/scala-9.5.0.min.js"/>
+
+            <script>
+                function hideRepo(hideButton, id){
+                    var parent = hideButton.parentElement;
+                    var showButton = parent.getElementsByClassName("repoShow")[0];
+                    hideButton.style.display = "none";
+                    showButton.style.display = "inline";
+
+                    var summary = parent.getElementsByClassName("d2h-file-header")[0];
+                    summary.style.display = "none";
+                    var repoDiff = document.getElementById(id);
+                    repoDiff.style.display = "none";
+                }
+                function showRepo(showButton, id){
+                    var parent = showButton.parentElement;
+                    var hideButton = parent.getElementsByClassName("repoHide")[0];
+                    showButton.style.display = "none";
+                    hideButton.style.display = "inline";
+
+                    var summary = parent.getElementsByClassName("d2h-file-header")[0];
+                    summary.style = "text-align:center;margin: 0 auto;";
+                    var repoDiff = document.getElementById(id);
+                    repoDiff.style.display = "inline";
+                }
+            </script>
+        </l:header>
+
+        <l:main-panel style="container-fluid;width:100%">
+
+            <h2 style="text-align:center">View Last Changes of build #${it.build.number}</h2>
+
+            <style>
+                .row{
+                text-align:center!important;
+                }
+
+                #main-panel {
+                margin-left:10px!important;
+                }
+            </style>
+            <script>
+                jQueryJenkins(document).ready(function() {
+                var sidePanelTD=document.getElementById('side-panel');
+                if(sidePanelTD) {
+                sidePanelTD.parentNode.removeChild(sidePanelTD);
+                }
+                var diff2htmlUi = new Diff2HtmlUI({diff: buildChanges});
+                });
+            </script>
+
+            <div id="main" style="width:100%; font-family: 'Source Sans Pro',sans-serif;">
+                <table class="pane">
+                    <tbody id = "tableBody">
+                        <j:forEach items="${it.allBuildChanges}" var="changes">
+                            <tr class="build-row  single-line">
+                                <td class="build-row-cell">
+                                    <a class="repoHide" href="javascript:;" onclick="hideRepo(this,'${changes.commitInfo.commitId}')" style="float:left;" >Hide repo</a>
+                                    <a class="repoShow" href="javascript:;" onclick="showRepo(this,'${changes.commitInfo.commitId}')" style = "display:none; float:left;">Show repo | Message: ${changes.commitInfo.commitMessage}</a>
+                                    <div class="d2h-file-header" style="text-align:center;margin: 0 auto;">
+                                        <b>Commit:</b> ${changes.commitInfo.commitId}
+                                        <br/>
+                                        <b>Author:</b> ${changes.commitInfo.commiterName}
+                                        <br/>
+                                        <b>E-mail:</b> ${changes.commitInfo.commiterEmail}
+                                        <br/>
+                                        <b>Date:</b> ${changes.commitInfo.commitDate}
+                                        <br/>
+                                        <b>Message:</b> ${changes.commitInfo.commitMessage}
+                                        <br/>
+                                    </div>
+                                    <br></br>
+                                    <div id="${changes.commitInfo.commitId}" style="margin: 0 auto;"></div>
+                                    <script>
+                                        var diff = "${changes.commitInfo.commitId}";
+
+                                        var buildChanges = "${changes.escapedDiff}";
+                                        var diff2htmlUi = new Diff2HtmlUI({diff: buildChanges});
+
+                                        diff2htmlUi.draw('#${changes.commitInfo.commitId}', {
+                                        inputFormat: 'json',
+                                        outputFormat: '${it.config.format().getFormat()}',
+                                        showFiles: ${it.config.showFiles()},
+                                        synchronisedScroll: ${it.config.synchronisedScroll()},
+                                        matchWordsThreshold: '${it.config.matchWordsThreshold()}',
+                                        matchingMaxComparisons: '${it.config.matchingMaxComparisons()}',
+                                        matching: '${it.config.matching().getMatching()}'});
+
+                                        diff2htmlUi.fileListCloseable("#${changes.commitInfo.commitId}", false);
+                                        diff2htmlUi.highlightCode("#${changes.commitInfo.commitId}");
+                                    </script>
+                                </td>
+                            </tr>
+                        </j:forEach>
+                        <j:if test="${empty it.allBuildChanges}">
+                            <span style="font-size:1.1em">No changes since last build.</span>
+                        </j:if>
+                    </tbody>
+                </table>
+            </div>
+        </l:main-panel>
+
+    </l:layout>
+
+</j:jelly>
+
+
+
