@@ -25,7 +25,6 @@ package com.github.jenkins.multiLastChanges;
 
 import com.github.jenkins.multiLastChanges.impl.GitLastChanges;
 import com.github.jenkins.multiLastChanges.impl.MultiScmLastChanges;
-import com.github.jenkins.multiLastChanges.impl.SCMUtils;
 import com.github.jenkins.multiLastChanges.impl.SvnLastChanges;
 import com.github.jenkins.multiLastChanges.model.FormatType;
 import com.github.jenkins.multiLastChanges.model.MatchingType;
@@ -45,6 +44,7 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
+import hudson.util.DirScanner;
 import hudson.util.ListBoxModel;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.plugins.multiplescms.MultiSCM;
@@ -54,7 +54,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -133,11 +132,8 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
                 multiLastChanges = svnLastChanges.getLastChanges();
             } else {
                 //workspace can be on slave so copy resources to master
-                List<String> pathsOfGitRepos= SCMUtils.findPathsOfGitRepos(workspace.getRemote());
-                for(String pathOfGitRepo : pathsOfGitRepos){
-                    String parentName = new File(pathOfGitRepo).getParentFile().getName();
-                    new FilePath(new File(pathOfGitRepo)).copyRecursiveTo(new FilePath(new File(workspaceTargetDir.getRemote()+"/fromSlave/"+parentName+"/.git")));
-                }
+                DirScanner.Glob dirScanner = new DirScanner.Glob("*/**", null, false);
+                workspace.copyRecursiveTo(dirScanner, new FilePath(new File(workspaceTargetDir.getRemote() + "/fromSlave")), "Whole workspace");
                 MultiScmLastChanges multiScmLastChanges = new MultiScmLastChanges(workspaceTargetDir.getRemote());
                 multiLastChangesSet = multiScmLastChanges.getLastChanges();
             }
@@ -170,7 +166,7 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
             recusursionDepth --;
         }
         if(gitDir == null){
-            throw new RuntimeException("No .git directory found in workspace.");
+            throw new RuntimeException("No .git directory found in workspace: " + workspace.getRemote());
         }
         return gitDir;
     }
