@@ -132,7 +132,7 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
                 multiLastChanges = svnLastChanges.getLastChanges();
             } else {
                 //workspace can be on slave so copy resources to master
-                DirScanner.Glob dirScanner = new DirScanner.Glob("*/**", null, false);
+                DirScanner.Glob dirScanner = new DirScanner.Glob("**/.git/**", null, false);
                 workspace.copyRecursiveTo(dirScanner, new FilePath(new File(workspaceTargetDir.getRemote() + "/fromSlave")), "Whole workspace");
                 MultiScmLastChanges multiScmLastChanges = new MultiScmLastChanges(workspaceTargetDir.getRemote());
                 multiLastChangesSet = multiScmLastChanges.getLastChanges();
