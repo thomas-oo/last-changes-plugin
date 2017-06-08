@@ -122,8 +122,8 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
                 // workspace can be on slave so copy resources to master
                 // we are only copying when on git because in svn we are reading
                 // the revision from remote repository
-                gitDir.copyRecursiveTo("**/*", new FilePath(new File(workspaceTargetDir.getRemote() + "/.git")));
-                GitLastChanges gitLastChanges = new GitLastChanges(workspaceTargetDir.getRemote() + "/.git");
+                gitDir.copyRecursiveTo("**/*", new FilePath(new File(workspaceTargetDir.getRemote() + "/fromSlave")));
+                GitLastChanges gitLastChanges = new GitLastChanges(workspaceTargetDir.getRemote() + "/fromSlave");
                 multiLastChanges = gitLastChanges.getLastChanges();
             } else if (isSvn){
                 AbstractProject<?, ?> rootProject = (AbstractProject<?, ?>) lastChangesProjectAction.getProject();
@@ -133,8 +133,8 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
             } else {
                 //workspace can be on slave so copy resources to master
                 DirScanner.Glob dirScanner = new DirScanner.Glob("**/.git/**", null, false);
-                workspace.copyRecursiveTo(dirScanner, new FilePath(new File(workspaceTargetDir.getRemote() + "/fromSlave")), "Whole workspace");
-                MultiScmLastChanges multiScmLastChanges = new MultiScmLastChanges(workspaceTargetDir.getRemote());
+                workspace.copyRecursiveTo(dirScanner, new FilePath(new File(workspaceTargetDir.getRemote() + "/fromSlave")), "Git folders");
+                MultiScmLastChanges multiScmLastChanges = new MultiScmLastChanges(workspaceTargetDir.getRemote() + "/fromSlave");
                 multiLastChangesSet = multiScmLastChanges.getLastChanges();
             }
             listener.hyperlink("../" + build.getNumber() + "/" + MultiLastChangesBaseAction.BASE_URL, "Last changes published successfully!");
@@ -150,10 +150,11 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
             listener.error("Last Changes NOT published due to the following error: " + e.getMessage() + (e.getCause() != null ? " - " + e.getCause() : ""));
             e.printStackTrace();
         }
-        // always success (only warn when no diff was generated)
-
+        //can clean up now
+        if(isMultiScm || isGit){
+            workspaceTargetDir.child("fromSlave").deleteRecursive();
+        }
         build.setResult(Result.SUCCESS);
-
     }
 
     /**
