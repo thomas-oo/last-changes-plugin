@@ -50,7 +50,7 @@ public class MultiLastChangesIT {
                 Collections.<GitSCMExtension>singletonList(new DisableRemotePoll()));
         FreeStyleProject project = jenkins.createFreeStyleProject("git-test");
         project.setScm(scm);
-        MultiLastChangesPublisher publisher = new MultiLastChangesPublisher(FormatType.LINE,MatchingType.NONE, true, false, "0.50","1500");
+        MultiLastChangesPublisher publisher = new MultiLastChangesPublisher(FormatType.LINE,MatchingType.NONE, true, false, "0.50","1500","");
         project.getPublishersList().add(publisher);
         project.save();
 
@@ -60,12 +60,12 @@ public class MultiLastChangesIT {
         // then
         MultiLastChangesBuildAction action = build.getAction(MultiLastChangesBuildAction.class);
         assertThat(action).isNotNull();
-        MultiLastChanges multiLastChanges = action.getBuildChanges();
+        MultiLastChanges multiLastChanges = action.getBuildChanges().get(0);
         assertThat(multiLastChanges).isNotNull();
         assertThat(multiLastChanges).isNotNull();
-        assertThat(multiLastChanges.getCommitInfo()).isNotNull();
-        assertThat(multiLastChanges.getCommitInfo().getCommitMessage()).isEqualTo("Added javadoc\n");
-        assertThat(multiLastChanges.getCommitInfo().getCommitId()).isEqualTo("27ad83a8fbee4b551670a03fc035bf87f7a3bcfb");
+        assertThat(multiLastChanges.getCurrentRevision()).isNotNull();
+        assertThat(multiLastChanges.getCurrentRevision().getCommitMessage()).isEqualTo("Added javadoc\n");
+        assertThat(multiLastChanges.getCurrentRevision().getCommitId()).isEqualTo("27ad83a8fbee4b551670a03fc035bf87f7a3bcfb");
         Assertions.assertThat(multiLastChanges.getDiff()).isEqualToIgnoringWhitespace(("diff --git a/kotlinee-framework/src/main/java/com/github/kotlinee/framework/vaadin/VaadinUtils.kt b/kotlinee-framework/src/main/java/com/github/kotlinee/framework/vaadin/VaadinUtils.kt" + GitMultiLastChangesTest.newLine +
                 "index 6d28c9b..bcc2ac0 100644" + GitMultiLastChangesTest.newLine +
                 "--- a/kotlinee-framework/src/main/java/com/github/kotlinee/framework/vaadin/VaadinUtils.kt" + GitMultiLastChangesTest.newLine +
@@ -118,7 +118,7 @@ public class MultiLastChangesIT {
         FreeStyleProject project = jenkins.createFreeStyleProject("git-test-slave");
         project.setAssignedNode(slave);
         project.setScm(scm);
-        MultiLastChangesPublisher publisher = new MultiLastChangesPublisher(FormatType.SIDE,MatchingType.WORD, true, false, null,null);
+        MultiLastChangesPublisher publisher = new MultiLastChangesPublisher(FormatType.SIDE,MatchingType.WORD, true, false, null,null, "");
         project.getPublishersList().add(publisher);
         project.save();
 
@@ -128,12 +128,12 @@ public class MultiLastChangesIT {
         // then
         MultiLastChangesBuildAction action = build.getAction(MultiLastChangesBuildAction.class);
         assertThat(action).isNotNull();
-        MultiLastChanges multiLastChanges = action.getBuildChanges();
+        MultiLastChanges multiLastChanges = action.getBuildChanges().get(0);
         assertThat(multiLastChanges).isNotNull();
         assertThat(multiLastChanges).isNotNull();
-        assertThat(multiLastChanges.getCommitInfo()).isNotNull();
-        assertThat(multiLastChanges.getCommitInfo().getCommitMessage()).isEqualTo("Added javadoc\n");
-        assertThat(multiLastChanges.getCommitInfo().getCommitId()).isEqualTo("27ad83a8fbee4b551670a03fc035bf87f7a3bcfb");
+        assertThat(multiLastChanges.getCurrentRevision()).isNotNull();
+        assertThat(multiLastChanges.getCurrentRevision().getCommitMessage()).isEqualTo("Added javadoc\n");
+        assertThat(multiLastChanges.getCurrentRevision().getCommitId()).isEqualTo("27ad83a8fbee4b551670a03fc035bf87f7a3bcfb");
         Assertions.assertThat(multiLastChanges.getDiff()).isEqualToIgnoringWhitespace(("diff --git a/kotlinee-framework/src/main/java/com/github/kotlinee/framework/vaadin/VaadinUtils.kt b/kotlinee-framework/src/main/java/com/github/kotlinee/framework/vaadin/VaadinUtils.kt" + GitMultiLastChangesTest.newLine +
                 "index 6d28c9b..bcc2ac0 100644" + GitMultiLastChangesTest.newLine +
                 "--- a/kotlinee-framework/src/main/java/com/github/kotlinee/framework/vaadin/VaadinUtils.kt" + GitMultiLastChangesTest.newLine +
@@ -178,7 +178,7 @@ public class MultiLastChangesIT {
         SvnSCM scm = new SvnSCM(".svn",sampleRepoDir,locations);
         FreeStyleProject project = jenkins.createFreeStyleProject("svn-test");
         project.setScm(scm);
-        MultiLastChangesPublisher publisher = new MultiLastChangesPublisher(FormatType.LINE,MatchingType.NONE, true, false, "0.50","1500");
+        MultiLastChangesPublisher publisher = new MultiLastChangesPublisher(FormatType.LINE,MatchingType.NONE, true, false, "0.50","1500", "");
         project.getPublishersList().add(publisher);
         project.save();
         
@@ -191,7 +191,7 @@ public class MultiLastChangesIT {
         MultiLastChangesBuildAction action = build.getAction(MultiLastChangesBuildAction.class);
         assertThat(action).isNotNull();
         assertThat(action.getBuildChanges()).isNotNull();
-        assertThat(action.getBuildChanges().getCommitInfo().getCommiterName()).isEqualTo("rmpestano");
+        assertThat(action.getBuildChanges().get(0).getCurrentRevision().getCommiterName()).isEqualTo("rmpestano");
         jenkins.assertLogContains("Last changes published successfully!",build);
     }
 }

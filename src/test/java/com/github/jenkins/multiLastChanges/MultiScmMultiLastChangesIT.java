@@ -26,7 +26,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -61,7 +60,7 @@ public class MultiScmMultiLastChangesIT {
         MultiSCM multiSCM = new MultiSCM(scms);
         project.setScm(multiSCM);
         //Hook up the post-build plugin (publisher) and save
-        MultiLastChangesPublisher publisher = new MultiLastChangesPublisher(FormatType.LINE, MatchingType.NONE, true, false, "0.50","1500");
+        MultiLastChangesPublisher publisher = new MultiLastChangesPublisher(FormatType.LINE, MatchingType.NONE, true, false, "0.50","1500", "");
         project.getPublishersList().add(publisher);
         project.save();
 
@@ -72,7 +71,7 @@ public class MultiScmMultiLastChangesIT {
         // then
         MultiLastChangesBuildAction action = build.getAction(MultiLastChangesBuildAction.class);
         assertThat(action).isNotNull();
-        Set<MultiLastChanges> multiLastChanges = action.getAllBuildChanges();
+        List<MultiLastChanges> multiLastChanges = action.getBuildChanges();
         assertThat(multiLastChanges).isNotNull();
         assertThat(multiLastChanges).isNotNull();
         assertEquals(expectedNumberOfBuildChanges, multiLastChanges.size());
@@ -92,7 +91,7 @@ public class MultiScmMultiLastChangesIT {
         DumbSlave slave = jenkins.createSlave();
         project.setAssignedNode(slave);
         //Hook up the post-build plugin (publisher) and save
-        MultiLastChangesPublisher publisher = new MultiLastChangesPublisher(FormatType.LINE, MatchingType.NONE, true, false, "0.50","1500");
+        MultiLastChangesPublisher publisher = new MultiLastChangesPublisher(FormatType.LINE, MatchingType.NONE, true, false, "0.50","1500", "");
         project.getPublishersList().add(publisher);
         project.save();
 
@@ -103,7 +102,7 @@ public class MultiScmMultiLastChangesIT {
         // then
         MultiLastChangesBuildAction action = build.getAction(MultiLastChangesBuildAction.class);
         assertThat(action).isNotNull();
-        Set<MultiLastChanges> multiLastChanges = action.getAllBuildChanges();
+        List<MultiLastChanges> multiLastChanges = action.getBuildChanges();
         assertThat(multiLastChanges).isNotNull();
         assertThat(multiLastChanges).isNotNull();
         assertEquals(expectedNumberOfBuildChanges, multiLastChanges.size());

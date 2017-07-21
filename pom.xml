@@ -109,6 +109,12 @@
             <artifactId>multiple-scms</artifactId>
             <version>0.6</version>
         </dependency>
+        <dependency>
+            <groupId>com.lesfurets</groupId>
+            <artifactId>jenkins-pipeline-unit</artifactId>
+            <version>1.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <repositories>

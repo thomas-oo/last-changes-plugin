@@ -41,9 +41,9 @@ public class GitMultiLastChangesTest {
         GitLastChanges gitLastChanges = new GitLastChanges(gitRepoPath);
         MultiLastChanges multiLastChanges = gitLastChanges.getLastChanges();
         assertThat(multiLastChanges).isNotNull();
-        assertThat(multiLastChanges.getCommitInfo()).isNotNull();
-        assertThat(multiLastChanges.getCommitInfo().getCommitMessage()).isEqualTo("Added javadoc\n");
-        assertThat(multiLastChanges.getCommitInfo().getCommitId()).isEqualTo("27ad83a8fbee4b551670a03fc035bf87f7a3bcfb");
+        assertThat(multiLastChanges.getCurrentRevision()).isNotNull();
+        assertThat(multiLastChanges.getCurrentRevision().getCommitMessage()).isEqualTo("Added javadoc\n");
+        assertThat(multiLastChanges.getCurrentRevision().getCommitId()).isEqualTo("27ad83a8fbee4b551670a03fc035bf87f7a3bcfb");
 
         assertThat(multiLastChanges.getDiff()).isEqualToIgnoringWhitespace(("diff --git a/kotlinee-framework/src/main/java/com/github/kotlinee/framework/vaadin/VaadinUtils.kt b/kotlinee-framework/src/main/java/com/github/kotlinee/framework/vaadin/VaadinUtils.kt" + newLine +
                 "index 6d28c9b..bcc2ac0 100644" + newLine +

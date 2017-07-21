@@ -58,6 +58,14 @@ public class GitLastChanges implements VCSChanges<Repository, ObjectId> {
 
     }
 
+    public ObjectId getCurrentRevision() {
+        return SCMUtils.resolveCurrentRevision(repository(this.projectPath));
+    }
+
+    public MultiLastChanges getChangesOf(ObjectId currentRevision, ObjectId previousRevision){
+        return SCMUtils.changesOf(repository(this.projectPath),currentRevision,previousRevision);
+    }
+
     /**
      * Creates last changes from repository last two revisions
      *

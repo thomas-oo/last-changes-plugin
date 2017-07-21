@@ -8,11 +8,10 @@ import org.eclipse.jgit.lib.Repository;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 //Todo: Create a test suite
 public class MultiScmLastChanges {
@@ -35,7 +34,7 @@ public class MultiScmLastChanges {
      *
      * @return A set of LastChanges for every git repo in path
      */
-    public Set<MultiLastChanges> getLastChanges(){
+    public List<MultiLastChanges> getLastChanges(){
         return getLastChangesOf(repositories(this.projectPath));
     }
 
@@ -69,14 +68,14 @@ public class MultiScmLastChanges {
      * @param repositories A map of a git path to a repository object
      * @return A set of LastChanges objects
      */
-    private Set<MultiLastChanges> getLastChangesOf(Map<String, Repository> repositories) {
-        Set<MultiLastChanges> multiLastChangesSet = new HashSet<>();
+    private List<MultiLastChanges> getLastChangesOf(Map<String, Repository> repositories) {
+        List<MultiLastChanges> multiLastChangesList = new ArrayList<>();
         for(String key : repositories.keySet()){
             //Todo: include the key in the LastChanges object so we can use it
             Repository repository = repositories.get(key);
             MultiLastChanges multiLastChanges = SCMUtils.changesOf(repository);
-            multiLastChangesSet.add(multiLastChanges);
+            multiLastChangesList.add(multiLastChanges);
         }
-        return multiLastChangesSet;
+        return multiLastChangesList;
     }
 }

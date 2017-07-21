@@ -100,6 +100,10 @@ public class SvnLastChanges implements VCSChanges<SVNRepository, Long> {
         }
     }
 
+    public MultiLastChanges getChangesOf(SVNRepository repository, long startRevision, long endRevision){
+        return changesOf(repository, startRevision, endRevision);
+    }
+
     /**
      * Creates last changes from two revisions of repository
      *

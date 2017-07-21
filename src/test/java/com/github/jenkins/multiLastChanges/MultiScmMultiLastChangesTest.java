@@ -8,7 +8,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.util.Set;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -32,8 +32,8 @@ public class MultiScmMultiLastChangesTest {
     @Test
     public void shouldGetLastChangesFromGitRepositories() {
         MultiScmLastChanges multiScmLastChanges = new MultiScmLastChanges(projectPath);
-        Set<MultiLastChanges> multiLastChangesSet = multiScmLastChanges.getLastChanges();
-        assertFalse(multiLastChangesSet.isEmpty());
-        assertEquals(3, multiLastChangesSet.size());
+        List<MultiLastChanges> multiLastChangesList = multiScmLastChanges.getLastChanges();
+        assertFalse(multiLastChangesList.isEmpty());
+        assertEquals(3, multiLastChangesList.size());
     }
 }

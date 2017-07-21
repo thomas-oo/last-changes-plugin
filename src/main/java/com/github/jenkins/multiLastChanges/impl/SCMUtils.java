@@ -3,7 +3,6 @@
  */
 package com.github.jenkins.multiLastChanges.impl;
 
-import com.github.jenkins.multiLastChanges.exception.CommitInfoException;
 import com.github.jenkins.multiLastChanges.exception.GitDiffException;
 import com.github.jenkins.multiLastChanges.exception.GitTreeNotFoundException;
 import com.github.jenkins.multiLastChanges.exception.GitTreeParseException;
@@ -64,6 +63,8 @@ public class SCMUtils {
             }
         }
     }
+
+
 
     public static ObjectId resolveCurrentRevision(Repository repository) {
         String repositoryLocation = repository.getDirectory().getAbsolutePath();

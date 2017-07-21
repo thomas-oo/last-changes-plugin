@@ -1,16 +1,15 @@
 <?jelly escape-by-default='false'?>
-<j:jelly trim="false" xmlns:j="jelly:core" xmlns:l="/lib/layout"
->
+<j:jelly trim="false" xmlns:j="jelly:core" xmlns:l="/lib/layout">
     <l:layout>
 
         <l:header>
             <link rel="stylesheet" type="text/css" href="${rootURL}/plugin/multi-last-changes/css/github-9.5.0.min.css"/>
-            <link rel="stylesheet" type="text/css" href="${rootURL}/plugin/multi-last-changes/css/diff2html-2.0.1.min.css"/>
+            <link rel="stylesheet" type="text/css" href="${rootURL}/plugin/multi-last-changes/css/diff2html-2.3.0.min.css"/>
             <script type="text/javascript" src="${rootURL}/plugin/multi-last-changes/js/jquery.min.js"/>
             <script type="text/javascript">window.jQueryJenkins = jQuery.noConflict();</script>
-            <script type="text/javascript" src="${rootURL}/plugin/multi-last-changes/js/highlightjs-9.5.0.min.js"/>
-            <script type="text/javascript" src="${rootURL}/plugin/multi-last-changes/js/diff2html-2.0.1.min.js"/>
-            <script type="text/javascript" src="${rootURL}/plugin/multi-last-changes/js/diff2html-ui-2.0.1.min.js"/>
+            <script type="text/javascript" src="${rootURL}/plugin/multi-last-changes/js/highlightjs-9.12.0.min.js"/>
+            <script type="text/javascript" src="${rootURL}/plugin/multi-last-changes/js/diff2html-2.3.0.min.js"/>
+            <script type="text/javascript" src="${rootURL}/plugin/multi-last-changes/js/diff2html-ui-2.0.12.min.js"/>
             <script type="text/javascript" src="${rootURL}/plugin/multi-last-changes/js/scala-9.5.0.min.js"/>
 
             <script>
@@ -32,7 +31,7 @@
                     hideButton.style.display = "inline";
 
                     var summary = parent.getElementsByClassName("d2h-file-header")[0];
-                    summary.style = "text-align:center;margin: 0 auto;";
+                    summary.style = "text-align:center;margin: 0 auto;overflow:auto;";
                     var repoDiff = document.getElementById(id);
                     repoDiff.style.display = "inline";
                 }
@@ -61,36 +60,48 @@
                 var diff2htmlUi = new Diff2HtmlUI({diff: buildChanges});
                 });
             </script>
-
             <div id="main" style="width:100%; font-family: 'Source Sans Pro',sans-serif;">
                 <table class="pane">
                     <tbody id = "tableBody">
                         <j:forEach items="${it.allBuildChanges}" var="changes">
                             <tr class="build-row  single-line">
                                 <td class="build-row-cell">
-                                    <a class="repoHide" href="javascript:;" onclick="hideRepo(this,'${changes.commitInfo.commitId}')" style="float:left;" >Hide repo</a>
-                                    <a class="repoShow" href="javascript:;" onclick="showRepo(this,'${changes.commitInfo.commitId}')" style = "display:none; float:left;">Show repo | Message: ${changes.commitInfo.commitMessage}</a>
-                                    <div class="d2h-file-header" style="text-align:center;margin: 0 auto;">
-                                        <b>Commit:</b> ${changes.commitInfo.commitId}
-                                        <br/>
-                                        <b>Author:</b> ${changes.commitInfo.commiterName}
-                                        <br/>
-                                        <b>E-mail:</b> ${changes.commitInfo.commiterEmail}
-                                        <br/>
-                                        <b>Date:</b> ${changes.commitInfo.commitDate}
-                                        <br/>
-                                        <b>Message:</b> ${changes.commitInfo.commitMessage}
-                                        <br/>
+                                    <a class="repoHide" href="javascript:;" onclick="hideRepo(this,'${changes.currentRevision.commitId}')" style="float:left; clear:both;" >Hide repo</a>
+                                    <a class="repoShow" href="javascript:;" onclick="showRepo(this,'${changes.currentRevision.commitId}')" style = "display:none; float:left; clear:both;">Show repo | Message: ${changes.currentRevision.commitMessage}</a>
+                                    <br/>
+                                    <div class="d2h-file-header" style="text-align:center;margin: 0 auto; overflow:auto">
+                                        <div class = "left" style="float:left;width:50%">
+                                            <b>Commit:</b> ${changes.currentRevision.commitId}
+                                            <br/>
+                                            <b>Author:</b> ${changes.currentRevision.commiterName}
+                                            <br/>
+                                            <b>E-mail:</b> ${changes.currentRevision.commiterEmail}
+                                            <br/>
+                                            <b>Date:</b> ${changes.currentRevision.commitDate}
+                                            <br/>
+                                            <b>Message:</b> ${changes.currentRevision.commitMessage}
+                                            <br/>
+                                        </div>
+                                        <div class="right" style="float:right;width:50%">
+                                            <b>Commit:</b> ${changes.endRevision.commitId}
+                                            <br/>
+                                            <b>Author:</b> ${changes.endRevision.commiterName}
+                                            <br/>
+                                            <b>E-mail:</b> ${changes.endRevision.commiterEmail}
+                                            <br/>
+                                            <b>Date:</b> ${changes.endRevision.commitDate}
+                                            <br/>
+                                            <b>Message:</b> ${changes.endRevision.commitMessage}
+                                            <br/>
+                                        </div>
                                     </div>
                                     <br></br>
-                                    <div id="${changes.commitInfo.commitId}" style="margin: 0 auto;"></div>
+                                    <div id="${changes.currentRevision.commitId}" style="margin: 0 auto;"></div>
                                     <script>
-                                        var diff = "${changes.commitInfo.commitId}";
-
                                         var buildChanges = "${changes.escapedDiff}";
                                         var diff2htmlUi = new Diff2HtmlUI({diff: buildChanges});
-
-                                        diff2htmlUi.draw('#${changes.commitInfo.commitId}', {
+                                        console.log("${it.config.format().getFormat()}");
+                                        diff2htmlUi.draw('#${changes.currentRevision.commitId}', {
                                         inputFormat: 'json',
                                         outputFormat: '${it.config.format().getFormat()}',
                                         showFiles: ${it.config.showFiles()},
@@ -99,8 +110,8 @@
                                         matchingMaxComparisons: '${it.config.matchingMaxComparisons()}',
                                         matching: '${it.config.matching().getMatching()}'});
 
-                                        diff2htmlUi.fileListCloseable("#${changes.commitInfo.commitId}", false);
-                                        diff2htmlUi.highlightCode("#${changes.commitInfo.commitId}");
+                                        diff2htmlUi.fileListCloseable("#${changes.currentRevision.commitId}", false);
+                                        diff2htmlUi.highlightCode("#${changes.currentRevision.commitId}");
                                     </script>
                                 </td>
                             </tr>
