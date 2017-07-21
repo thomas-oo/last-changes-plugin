@@ -39,6 +39,7 @@ import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitSCM;
+import hudson.scm.SCM;
 import hudson.scm.SubversionSCM;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
@@ -47,12 +48,21 @@ import hudson.tasks.Recorder;
 import hudson.util.DirScanner;
 import hudson.util.ListBoxModel;
 import jenkins.tasks.SimpleBuildStep;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Repository;
 import org.jenkinsci.plugins.multiplescms.MultiSCM;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.tmatesoft.svn.core.io.SVNRepository;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.Collection;
+
+import static com.github.jenkins.lastchanges.impl.GitLastChanges.repository;
+import static com.github.jenkins.multiLastChanges.impl.GitLastChanges.repository;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -62,6 +72,8 @@ import java.util.Set;
 public class MultiLastChangesPublisher extends Recorder implements SimpleBuildStep {
 
     private static final short RECURSION_DEPTH = 50;
+
+    private String endRevision;
 
     private FormatType format;
 
@@ -81,7 +93,8 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
 
     @DataBoundConstructor
     public MultiLastChangesPublisher(FormatType format, MatchingType matching, Boolean showFiles, Boolean synchronisedScroll, String matchWordsThreshold,
-                                     String matchingMaxComparisons) {
+                                String matchingMaxComparisons, String endRevision) {
+        this.endRevision = endRevision;
         this.format = format;
         this.matching = matching;
         this.showFiles = showFiles;
@@ -90,20 +103,34 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
         this.matchingMaxComparisons = matchingMaxComparisons;
     }
 
-    @Override
-    public Action getProjectAction(AbstractProject<?, ?> project) {
-        if (lastChangesProjectAction == null) {
-            lastChangesProjectAction = new MultiLastChangesProjectAction(project);
-        }
-        return lastChangesProjectAction;
-    }
 
     @Override
     public void perform(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
 
-        boolean isGit = ((AbstractProject) lastChangesProjectAction.getProject()).getScm() instanceof GitSCM;
-        boolean isSvn = ((AbstractProject) lastChangesProjectAction.getProject()).getScm() instanceof SubversionSCM;
-        boolean isMultiScm = ((AbstractProject) lastChangesProjectAction.getProject()).getScm() instanceof MultiSCM;
+        MultiLastChangesProjectAction projectAction = new MultiLastChangesProjectAction(build.getParent());
+        boolean isGit = false;
+        boolean isSvn = false;
+        boolean isMultiScm = false;
+        if (projectAction.isRunningInPipelineWorkflow()) {
+            WorkflowJob wkfJob = (WorkflowJob) projectAction.getProject();
+            Collection<? extends SCM> scMs = wkfJob.getSCMs();
+            for (SCM scm : scMs) {
+                if (scm instanceof GitSCM) {
+                    isGit = true;
+                    break;
+                }
+
+                if (scm instanceof SubversionSCM) {
+                    isSvn = true;
+                    break;
+                }
+            }
+
+        } else if (projectAction.getProject() instanceof AbstractProject) { // non pipeline build
+            isGit = ((AbstractProject) projectAction.getProject()).getScm() instanceof GitSCM;
+            isSvn = ((AbstractProject) projectAction.getProject()).getScm() instanceof SubversionSCM;
+            isMultiScm = ((AbstractProject) lastChangesProjectAction.getProject()).getScm() instanceof MultiSCM;
+        }
 
         if (!isGit && !isSvn && !isMultiScm) {
             throw new RuntimeException("Git/Svn/MultiSCM must be configured on your job to publish Last Changes.");
@@ -112,6 +139,7 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
         FilePath workspaceTargetDir = getMasterWorkspaceDir(build);
         // workspace can be on slave so copy resources to master
 
+        //TODO:change behaviour if in pipeline
         try {
             MultiLastChanges multiLastChanges = null;
             Set<MultiLastChanges> multiLastChangesSet = new HashSet<>();
@@ -124,12 +152,24 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
                 // the revision from remote repository
                 gitDir.copyRecursiveTo("**/*", new FilePath(new File(workspaceTargetDir.getRemote() + "/fromSlave")));
                 GitLastChanges gitLastChanges = new GitLastChanges(workspaceTargetDir.getRemote() + "/fromSlave");
-                multiLastChanges = gitLastChanges.getLastChanges();
+                if(endRevision != null && !"".equals(endRevision.trim())) {
+                    Repository repository = repository(workspaceTargetDir.getRemote() + "/.git");
+                    multiLastChanges = gitLastChanges.getLastChangesOf(repository, GitLastChanges.resolveCurrentRevision(repository), ObjectId.fromString((endRevision)));
+                } else {
+                    multiLastChanges = gitLastChanges.getLastChangesOf(repository(workspaceTargetDir.getRemote() + "/.git"));
+                }
+
             } else if (isSvn){
                 AbstractProject<?, ?> rootProject = (AbstractProject<?, ?>) lastChangesProjectAction.getProject();
                 SubversionSCM scm = SubversionSCM.class.cast(rootProject.getScm());
                 SvnLastChanges svnLastChanges = new SvnLastChanges(rootProject, scm);
-                multiLastChanges = svnLastChanges.getLastChanges();
+                if(endRevision != null && !"".equals(endRevision.trim())) {
+                    Long svnRevision = Long.parseLong(endRevision);
+                    SVNRepository repository = SvnLastChanges.repository(scm, (AbstractProject<?, ?>) projectAction.getProject());
+                    multiLastChanges = svnLastChanges.getLastChangesOf(repository,repository.getLatestRevision(), svnRevision);
+                } else {
+                    multiLastChanges = svnLastChanges.getLastChangesOf(SvnLastChanges.repository(scm, (AbstractProject<?, ?>) projectAction.getProject()));
+                }
             } else {
                 //workspace can be on slave so copy resources to master
                 DirScanner.Glob dirScanner = new DirScanner.Glob("**/.git/**", null, false);
@@ -141,10 +181,10 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
             listener.getLogger().println("");
             if(!isMultiScm){
                 build.addAction(new MultiLastChangesBuildAction(build, multiLastChanges,
-                        new MultiLastChangesConfig(format, matching, showFiles, synchronisedScroll, matchWordsThreshold, matchingMaxComparisons)));
+                        new MultiLastChangesConfig(endRevision, format, matching, showFiles, synchronisedScroll, matchWordsThreshold, matchingMaxComparisons)));
             }else{
                 build.addAction(new MultiLastChangesBuildAction(build, multiLastChangesSet,
-                        new MultiLastChangesConfig(format, matching, showFiles, synchronisedScroll, matchWordsThreshold, matchingMaxComparisons)));
+                        new MultiLastChangesConfig(endRevision, format, matching, showFiles, synchronisedScroll, matchWordsThreshold, matchingMaxComparisons)));
             }
         } catch (Exception e) {
             listener.error("Last Changes NOT published due to the following error: " + e.getMessage() + (e.getCause() != null ? " - " + e.getCause() : ""));
@@ -163,20 +203,20 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
     private FilePath findGitDir(FilePath workspace) throws IOException, InterruptedException {
         FilePath gitDir = null;
         int recusursionDepth = RECURSION_DEPTH;
-        while ((gitDir = findGitDirInSubDirectories(workspace)) == null && recusursionDepth > 0){
-            recusursionDepth --;
+        while ((gitDir = findGitDirInSubDirectories(workspace)) == null && recusursionDepth > 0) {
+            recusursionDepth--;
         }
-        if(gitDir == null){
-            throw new RuntimeException("No .git directory found in workspace: " + workspace.getRemote());
+        if (gitDir == null) {
+            throw new RuntimeException("No .git directory found in workspace.");
         }
         return gitDir;
     }
 
     private FilePath findGitDirInSubDirectories(FilePath sourceDir) throws IOException, InterruptedException {
         for (FilePath filePath : sourceDir.listDirectories()) {
-            if(filePath.getName().equalsIgnoreCase(GIT_DIR)){
+            if (filePath.getName().equalsIgnoreCase(GIT_DIR)) {
                 return filePath;
-            } else{
+            } else {
                 return findGitDirInSubDirectories(filePath);
             }
         }
@@ -234,6 +274,10 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
             return items;
         }
 
+    }
+
+    public String getEndRevision() {
+        return endRevision;
     }
 
     public FormatType getFormat() {

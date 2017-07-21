@@ -1,3 +1,6 @@
+/**
+ * Created by rmpestano on 6/5/16.
+ */
 package com.github.jenkins.multiLastChanges.impl;
 
 import com.github.jenkins.multiLastChanges.exception.CommitInfoException;
@@ -13,6 +16,8 @@ import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 
 import java.io.ByteArrayOutputStream;
@@ -38,12 +43,7 @@ public class SCMUtils {
         Git git = new Git(repository);
         try {
             String repositoryLocation = repository.getDirectory().getAbsolutePath();
-            ObjectId head = null;
-            try {
-                head = repository.resolve("HEAD^{tree}");
-            } catch (IOException e) {
-                throw new GitTreeNotFoundException("Could not resolve head of repository located at " + repositoryLocation, e);
-            }
+            ObjectId head = resolveCurrentRevision(repository);
             ObjectId previousHead = null;
             try {
                 previousHead = repository.resolve("HEAD~^{tree}");
@@ -65,6 +65,16 @@ public class SCMUtils {
         }
     }
 
+    public static ObjectId resolveCurrentRevision(Repository repository) {
+        String repositoryLocation = repository.getDirectory().getAbsolutePath();
+        try {
+            return repository.resolve("HEAD^{tree}");
+        } catch (IOException e) {
+            throw new GitTreeNotFoundException("Could not resolve head of repository located at " + repositoryLocation, e);
+        }
+
+    }
+
     /**
      * Creates last changes by "diffing" two revisions
      *
@@ -76,26 +86,38 @@ public class SCMUtils {
         try {
             ByteArrayOutputStream diffStream = new ByteArrayOutputStream();
             CommitInfo lastCommitInfo;
+            CommitInfo oldCommitInfo;
             String repositoryLocation = repository.getDirectory().getAbsolutePath();
             DiffFormatter formatter = new DiffFormatter(diffStream);
             formatter.setRepository(repository);
             ObjectReader reader = repository.newObjectReader();
-            try {
-                lastCommitInfo = CommitInfo.Builder.buildFromGit(repository, currentRevision);
-            } catch (Exception e) {
-                throw new CommitInfoException("Could not get last commit information", e);
-            }
+
+            lastCommitInfo = CommitInfo.Builder.buildFromGit(repository, currentRevision);
+            oldCommitInfo = CommitInfo.Builder.buildFromGit(repository, previousRevision);
 
             // Create the tree iterator for each commit
             CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
             try {
-                oldTreeIter.reset(reader, previousRevision);
+                RevWalk revWalk = new RevWalk(repository);
+                if (revWalk.parseAny(previousRevision) instanceof RevCommit) {
+                    RevCommit revCommit = revWalk.parseCommit(previousRevision);
+                    oldTreeIter.reset(reader, revCommit.getTree().getId());
+                } else {
+                    oldTreeIter.reset(reader, previousRevision);
+                }
             } catch (Exception e) {
                 throw new GitTreeParseException("Could not parse previous commit tree.", e);
             }
             CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
             try {
-                newTreeIter.reset(reader, currentRevision);
+                RevWalk revWalk = new RevWalk(repository);
+                if (revWalk.parseAny(currentRevision) instanceof RevCommit) {
+                    RevCommit revCommit = revWalk.parseCommit(currentRevision);
+                    newTreeIter.reset(reader, revCommit.getTree().getId());
+                } else {
+                    newTreeIter.reset(reader, currentRevision);
+                }
+
             } catch (IOException e) {
                 throw new GitTreeParseException("Could not parse current commit tree.", e);
             }
@@ -107,7 +129,7 @@ public class SCMUtils {
                 throw new GitDiffException("Could not get last changes of repository located at " + repositoryLocation, e);
             }
 
-            return new MultiLastChanges(lastCommitInfo, new String(diffStream.toByteArray(), Charset.forName("UTF-8")));
+            return new MultiLastChanges(lastCommitInfo, oldCommitInfo, new String(diffStream.toByteArray(), Charset.forName("UTF-8")));
         } finally {
             if (git != null) {
                 git.close();

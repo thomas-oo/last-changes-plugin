@@ -8,14 +8,19 @@ public class MultiLastChangesConfig {
 	private String matchingMaxComparisons = "1000";
 	private Boolean showFiles = Boolean.TRUE;
 	private Boolean synchronisedScroll = Boolean.TRUE;
-	
+	private String endRevision ="";//by default it is previous repository revision
+
 	
 	
 	public MultiLastChangesConfig() {
 	}
 
-	public MultiLastChangesConfig(FormatType format, MatchingType matching, Boolean showFiles, Boolean synchronisedScroll, String matchWordsThreshold, String matchingMaxComparisons) {
+	public MultiLastChangesConfig(String endRevision, FormatType format, MatchingType matching, Boolean showFiles, Boolean synchronisedScroll, String matchWordsThreshold, String matchingMaxComparisons) {
 		super();
+
+		if(endRevision != null) {
+			this.endRevision = endRevision;
+		}
 		if(format != null){
 			this.format = format;
 		}
@@ -49,11 +54,15 @@ public class MultiLastChangesConfig {
 	public FormatType format() {
 		return format;
 	}
+
+	public String getEndRevision() {
+		return endRevision;
+	}
+
 	public MatchingType matching() {
 		return matching;
 	}
-	
-	
+
 	public String showFiles(){
 		return showFiles.toString();
 	}

@@ -16,8 +16,6 @@ ____
 
 image:https://travis-ci.org/jenkinsci/last-changes-plugin.svg[Build Status (Travis CI), link=https://travis-ci.org/jenkinsci/last-changes-plugin]
 
-image:https://jenkins.ci.cloudbees.com/buildStatus/icon?job=plugins/last-changes-plugin[Build Status (Cloudbees), link=https://jenkins.ci.cloudbees.com/job/plugins/job/last-changes-plugin/]
-
 Last Changes is a *Jenkin plugin* that shows _rich VCS diffs_ between builds.
 
 IMPORTANT: Only `Git` and `Svn` based projects are supported.
@@ -26,14 +24,14 @@ IMPORTANT: Only `Git` and `Svn` based projects are supported.
 
 The plugin uses https://diff2html.rtfpessoa.xyz/[diff2html^] to show last changes of a given build, example:
 
-image:images/last-changes03.png[]
+image::https://github.com/jenkinsci/last-changes-plugin/blob/master/images/last-changes03.png?raw=true[]
 
 Or using side-by-side configuration:
 
-image:images/last-changes05.png[]
+image::https://raw.githubusercontent.com/jenkinsci/last-changes-plugin/master/images/last-changes05.png[]
 
 
-NOTE: Last changes means `compare current revision with previous one`.
+NOTE: Last changes means `compare current repository revision with an old revision`. By default the plugin will diff current and previous revisions.
 
 == Objectives
 
@@ -48,12 +46,12 @@ And finally the plugin _shines_ in a https://en.wikipedia.org/wiki/Continuous_de
 
 . This plugin expects `git` or `svn` based builds (a.k.a _Source Code Management_ configuration section).
 . While your job runs the plugin reads your build workspace to retrieve the current VCS revision;
-. The diff between `actual` and `previous` revisions will be stored;
+. The diff between `actual` and `old` revisions will be stored; Note that `old` revision can be provided in plugin configuration. If no revision is provided then previous repository revision will be used.
 . The `diff` for each build can be viewed later in html format.
 
 IMPORTANT: To get most from this plugin use `periodically SCM pooling` to trigger your builds, http://www.nailedtothex.org/roller/kyle/entry/articles-jenkins-poll[more details here^].
 
-WARNING: The plugin *always* compare current revision with previous one even no new commit has been made.
+WARNING: The plugin *always* compare current revision with old one even no new commit has been made.
 
 == Usage
 
@@ -78,6 +76,19 @@ image:images/last-changes04.png[]
 The setup is done via `build configuration` and basically reflects https://github.com/rtfpessoa/diff2html#configuration[diff2html options^]:
 
 image:images/last-changes-config.png[]
+
+== Jenkins pipeline step (since version 1.0.7)
+
+Following is an example of pipeline step using this plugin:
+
+----
+node {
+    checkout([$class: 'SubversionSCM', additionalCredentials: [], excludedCommitMessages: '', excludedRegions: '', excludedRevprop: '', excludedUsers: '', filterChangelog: false, ignoreDirPropChanges: false, includedRegions: '', locations: [[credentialsId: '', depthOption: 'infinity', ignoreExternalsOption: true, local: '.', remote: 'https://subversion.assembla.com/svn/cucumber-json-files/trunk']], workspaceUpdater: [$class: 'UpdateUpdater']])
+    step([$class: 'LastChangesPublisher', format: 'LINE', matchWordsThreshold: '0.25', matching: 'NONE', matchingMaxComparisons: '1000', showFiles: true, synchronisedScroll: true, endRevision: ''])
+}
+----
+
+NOTE: Empty *endRevision* will set endRevision to previous repository revision.
  
  
 == Docker

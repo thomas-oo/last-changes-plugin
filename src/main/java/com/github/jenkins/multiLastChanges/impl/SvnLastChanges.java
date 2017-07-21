@@ -8,6 +8,7 @@ import com.github.jenkins.multiLastChanges.exception.RepositoryNotFoundException
 import com.github.jenkins.multiLastChanges.model.CommitInfo;
 import com.github.jenkins.multiLastChanges.model.MultiLastChanges;
 import hudson.model.AbstractProject;
+import hudson.model.Job;
 import hudson.scm.SubversionSCM;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
@@ -61,13 +62,33 @@ public class SvnLastChanges implements VCSChanges<SVNRepository, Long> {
             throw new RepositoryNotFoundException("Could not find svn repository at " + path, e);
         }
     }
-    
+
+    public static SVNRepository repository(SubversionSCM scm, Job<?, ?> job) {
+
+        String path = null;
+        try {
+            path = scm.getLocations()[0].getURL();
+            ISVNAuthenticationProvider svnAuthProvider;
+            try{
+                svnAuthProvider = scm.createAuthenticationProvider(job, scm.getLocations()[0]);
+            } catch (NoSuchMethodError e) {
+                //fallback for versions under 2.x of org.jenkins-ci.plugins:subversion
+                svnAuthProvider = scm.getDescriptor().createAuthenticationProvider();
+            }
+            ISVNAuthenticationManager svnAuthManager = SVNWCUtil.createDefaultAuthenticationManager();
+            svnAuthManager.setAuthenticationProvider(svnAuthProvider);
+            SVNClientManager svnClientManager = SVNClientManager.newInstance(null, svnAuthManager);
+            return svnClientManager.createRepository(SVNURL.parseURIEncoded(path), false);
+        } catch (Exception e) {
+            throw new RepositoryNotFoundException("Could not find svn repository at " + path, e);
+        }
+    }
+
 
     /**
      * Creates last changes from repository last two revisions
      *
-     * @param repository
-     *            svn repository to get last changes
+     * @param repository svn repository to get last changes
      * @return LastChanges commit info and svn diff
      */
     @Override
@@ -101,9 +122,11 @@ public class SvnLastChanges implements VCSChanges<SVNRepository, Long> {
             diff.setOutput(diffStream);
             diff.run();
 
-            CommitInfo commitInfo = CommitInfo.Builder.buildFromSvn(repository,currentRevision);
+            CommitInfo lastCommitInfo = CommitInfo.Builder.buildFromSvn(repository,currentRevision);
+            CommitInfo oldCommitInfo = CommitInfo.Builder.buildFromSvn(repository,previousRevision);
 
-            return new MultiLastChanges(commitInfo, new String(diffStream.toByteArray(), Charset.forName("UTF-8")));
+
+            return new MultiLastChanges(lastCommitInfo, oldCommitInfo, new String(diffStream.toByteArray(), Charset.forName("UTF-8")));
         } catch (Exception e) {
             throw new RuntimeException("Could not retrieve last changes of svn repository located at " + repository.getLocation().getPath() + " due to following error: "+e.getMessage() + (e.getCause() != null ? " - " + e.getCause() : ""), e);
 

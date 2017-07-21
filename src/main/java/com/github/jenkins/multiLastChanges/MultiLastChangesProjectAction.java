@@ -1,9 +1,9 @@
 package com.github.jenkins.multiLastChanges;
 
-import hudson.model.AbstractProject;
 import hudson.model.Job;
 import hudson.model.ProminentProjectAction;
 import hudson.model.Run;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -11,28 +11,28 @@ import java.util.List;
 
 public class MultiLastChangesProjectAction extends MultiLastChangesBaseAction implements ProminentProjectAction {
 
-    private final AbstractProject<?, ?> project;
+    private final Job<?, ?> job;
 
     private String jobName;
 
-    public MultiLastChangesProjectAction(AbstractProject<?, ?> project) {
-        this.project = project;
+    public MultiLastChangesProjectAction(Job<?, ?> job) {
+        this.job = job;
     }
 
     public String job() {
         if (jobName == null) {
-            jobName = project.getName();
+            jobName = job.getName();
         }
         return jobName;
     }
 
     public Job<?, ?> getProject() {
-        return project;
+        return job;
     }
 
     @Override
     protected File dir() {
-        Run<?, ?> run = this.project.getLastCompletedBuild();
+        Run<?, ?> run = this.job.getLastCompletedBuild();
         if (run != null) {
             File archiveDir = getBuildArchiveDir(run);
 
@@ -45,7 +45,7 @@ public class MultiLastChangesProjectAction extends MultiLastChangesBaseAction im
     }
 
     private File getProjectArchiveDir() {
-        return new File(project.getRootDir(), MultiLastChangesBaseAction.BASE_URL);
+        return new File(job.getRootDir(), MultiLastChangesBaseAction.BASE_URL);
     }
 
     /**
@@ -57,13 +57,13 @@ public class MultiLastChangesProjectAction extends MultiLastChangesBaseAction im
 
     @Override
     protected String getTitle() {
-        return this.project.getDisplayName();
+        return this.job.getDisplayName();
     }
 
     public List<Run<?, ?>> getLastChangesBuilds() {
         List<Run<?, ?>> builds = new ArrayList<>();
 
-        for (Run<?, ?> build : project.getBuilds()) {
+        for (Run<?, ?> build : job.getBuilds()) {
             MultiLastChangesBuildAction action = build.getAction(MultiLastChangesBuildAction.class);
             if (action != null) {
                 builds.add(build);
@@ -73,4 +73,7 @@ public class MultiLastChangesProjectAction extends MultiLastChangesBaseAction im
         return builds;
     }
 
+    public boolean isRunningInPipelineWorkflow() {
+        return getProject() != null && getProject() instanceof WorkflowJob;
+    }
 }
