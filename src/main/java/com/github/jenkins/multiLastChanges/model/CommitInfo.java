@@ -12,6 +12,7 @@ import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNLogEntry;
 import org.tmatesoft.svn.core.io.SVNRepository;
 
+import java.io.Serializable;
 import java.text.DateFormat;
 import java.util.Collection;
 import java.util.Date;
@@ -22,7 +23,7 @@ import java.util.logging.Logger;
 /**
  * Created by rmpestano on 6/26/16.
  */
-public class CommitInfo {
+public class CommitInfo implements Serializable {
 
     public static final DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT);
     private static final String newLine = System.getProperty("line.separator");

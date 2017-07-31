@@ -63,7 +63,7 @@
             <div id="main" style="width:100%; font-family: 'Source Sans Pro',sans-serif;">
                 <table class="pane">
                     <tbody id = "tableBody">
-                        <j:forEach items="${it.allBuildChanges}" var="changes">
+                        <j:forEach items="${it.buildChanges}" var="changes">
                             <tr class="build-row  single-line">
                                 <td class="build-row-cell">
                                     <a class="repoHide" href="javascript:;" onclick="hideRepo(this,'${changes.currentRevision.commitId}')" style="float:left; clear:both;" >Hide repo</a>
@@ -116,7 +116,7 @@
                                 </td>
                             </tr>
                         </j:forEach>
-                        <j:if test="${empty it.allBuildChanges}">
+                        <j:if test="${empty it.buildChanges}">
                             <span style="font-size:1.1em">No changes since last build.</span>
                         </j:if>
                     </tbody>

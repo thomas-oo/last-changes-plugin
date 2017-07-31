@@ -40,6 +40,7 @@ import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitSCM;
+import hudson.remoting.Callable;
 import hudson.scm.SCM;
 import hudson.scm.SubversionSCM;
 import hudson.tasks.BuildStepDescriptor;
@@ -48,6 +49,7 @@ import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.DirScanner;
 import hudson.util.ListBoxModel;
+import jenkins.security.MasterToSlaveCallable;
 import jenkins.tasks.SimpleBuildStep;
 import jenkins.triggers.SCMTriggerItem;
 import org.eclipse.jgit.lib.ObjectId;
@@ -57,8 +59,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.io.SVNRepository;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -67,7 +69,7 @@ import java.util.List;
 /**
  * @author rmpestano
  */
-public class MultiLastChangesPublisher extends Recorder implements SimpleBuildStep {
+public class MultiLastChangesPublisher extends Recorder implements SimpleBuildStep, Serializable {
 
     private static final short RECURSION_DEPTH = 50;
 
@@ -134,39 +136,62 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
         }
         FilePath workspaceTargetDir = getMasterWorkspaceDir(build);
         listener.getLogger().println("Publishing build last changes...");
-        List<MultiLastChanges> multiLastChangesSet = new ArrayList<>();
+        List<MultiLastChanges> multiLastChangesList = new ArrayList<>();
         if(isPipeline){
             if(isGit){
                 DirScanner.Glob dirScanner = new DirScanner.Glob("**/.git/**", null, false);
-                File fromSlaveDir = new File(workspaceTargetDir.getRemote() + "/fromSlave");
-                workspace.copyRecursiveTo(dirScanner, new FilePath(fromSlaveDir), "Git folders");
-                List<String> gitDirPaths = SCMUtils.findPathsOfGitRepos(fromSlaveDir.getAbsolutePath());
-                //Supplying a revisionID will be ignored if there are more than one gitDir as it's unlikely all of them have the same change id
-                if(endRevision != null && !"".equalsIgnoreCase(endRevision.trim()) && gitDirPaths.size()>1){
-                    listener.getLogger().println("End revision ignored as multiple repos detected.");
-                }
-                for(String gitDirPath : gitDirPaths){
-                    GitLastChanges gitLastChanges = new GitLastChanges(gitDirPath);
-                    MultiLastChanges multiLastChanges = gitLastChanges.getLastChanges();
-                    multiLastChangesSet.add(multiLastChanges);
-                }
+                FilePath gitFolderOnSlave = new FilePath(workspace, "gitFolders");
+                gitFolderOnSlave.mkdirs();
+                workspace.copyRecursiveTo(dirScanner, gitFolderOnSlave, "Git folders");
+
+                Callable<List<MultiLastChanges>, IOException> getMultiLastChangesOnSlave = new MasterToSlaveCallable<List<MultiLastChanges>, IOException>() {
+                    public List<MultiLastChanges> call() throws IOException{
+                        List<MultiLastChanges> multiLastChangesList = new ArrayList<>();
+                        List<String> gitDirPaths = SCMUtils.findPathsOfGitRepos(gitFolderOnSlave.getRemote());
+                        //Supplying a revisionID will be ignored if there are more than one gitDir as it's unlikely all of them have the same change id
+                        if(endRevision != null && !"".equalsIgnoreCase(endRevision.trim()) && gitDirPaths.size()>1){
+                            listener.getLogger().println("End revision ignored as multiple repos detected.");
+                        }
+                        for(String gitDirPath : gitDirPaths){
+                            GitLastChanges gitLastChanges = new GitLastChanges(gitDirPath);
+                            MultiLastChanges multiLastChanges = gitLastChanges.getLastChanges();
+                            multiLastChangesList.add(multiLastChanges);
+                        }
+                        return multiLastChangesList;
+                    }
+                };
+
+                List<MultiLastChanges> multiLastChangesFromSlave = launcher.getChannel().call(getMultiLastChangesOnSlave);
+                multiLastChangesList.addAll(multiLastChangesFromSlave);
             }else{
                 //TODO: implement way to handle potentially multiple SVN projects
                 throw new RuntimeException("Currently pipeline with SVN/MultiSCM projects are not supported on your job to publish Last Changes.");
             }
         }else {
             if (isGit) {
-                FilePath gitDir = workspace.child(GIT_DIR).exists() ? workspace.child(GIT_DIR) : findGitDir(workspace);
-                gitDir.copyRecursiveTo("**/*", new FilePath(new File(workspaceTargetDir.getRemote() + "/fromSlave")));
-                GitLastChanges gitLastChanges = new GitLastChanges(workspaceTargetDir.getRemote() + "/fromSlave");
-                if (endRevision != null && !"".equals(endRevision.trim())) {
-                    MultiLastChanges multiLastChanges = gitLastChanges.getChangesOf(gitLastChanges.getCurrentRevision(), ObjectId.fromString(endRevision));
-                    multiLastChangesSet.add(multiLastChanges);
-                } else {
-                    MultiLastChanges multiLastChanges = gitLastChanges.getLastChanges();
-                    multiLastChangesSet.add(multiLastChanges);
-                }
+                DirScanner.Glob dirScanner = new DirScanner.Glob("**/.git/**", null, false);
+                FilePath gitFolderOnSlave = new FilePath(workspace, "gitFolders");
+                gitFolderOnSlave.mkdirs();
+                workspace.copyRecursiveTo(dirScanner, gitFolderOnSlave, "Git folders");
 
+                Callable<List<MultiLastChanges>, IOException> getMultiLastChangesOnSlave = new MasterToSlaveCallable<List<MultiLastChanges>, IOException>() {
+                    public List<MultiLastChanges> call() throws IOException{
+                        List<MultiLastChanges> multiLastChangesList = new ArrayList<>();
+                        List<String> gitDirPaths = SCMUtils.findPathsOfGitRepos(gitFolderOnSlave.getRemote());
+                        GitLastChanges gitLastChanges = new GitLastChanges(gitDirPaths.get(0));
+                        if(endRevision != null && !"".equalsIgnoreCase(endRevision.trim()) && gitDirPaths.size()>1){
+                            MultiLastChanges multiLastChanges = gitLastChanges.getChangesOf(gitLastChanges.getCurrentRevision(), ObjectId.fromString(endRevision));
+                            multiLastChangesList.add(multiLastChanges);
+                        } else {
+                            MultiLastChanges multiLastChanges = gitLastChanges.getLastChanges();
+                            multiLastChangesList.add(multiLastChanges);
+                        }
+                        return multiLastChangesList;
+                    }
+                };
+
+                List<MultiLastChanges> multiLastChangesFromSlave = launcher.getChannel().call(getMultiLastChangesOnSlave);
+                multiLastChangesList.addAll(multiLastChangesFromSlave);
             } else if (isSvn) {
                 AbstractProject<?, ?> rootProject = (AbstractProject<?, ?>) projectAction.getProject();
                 SubversionSCM scm = SubversionSCM.class.cast(rootProject.getScm());
@@ -176,30 +201,40 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
                     SVNRepository repository = SvnLastChanges.repository(scm, projectAction.getProject());
                     try {
                         MultiLastChanges multiLastChanges = svnLastChanges.getChangesOf(repository, repository.getLatestRevision(), svnRevision);
-                        multiLastChangesSet.add(multiLastChanges);
+                        multiLastChangesList.add(multiLastChanges);
                     } catch (SVNException e) {
                         e.printStackTrace();
                     }
                 } else {
                     MultiLastChanges multiLastChanges = svnLastChanges.getLastChangesOf(SvnLastChanges.repository(scm, projectAction.getProject()));
-                    multiLastChangesSet.add(multiLastChanges);
+                    multiLastChangesList.add(multiLastChanges);
                 }
             } else {
                 DirScanner.Glob dirScanner = new DirScanner.Glob("**/.git/**", null, false);
-                workspace.copyRecursiveTo(dirScanner, new FilePath(new File(workspaceTargetDir.getRemote() + "/fromSlave")), "Git folders");
-                MultiScmLastChanges multiScmLastChanges = new MultiScmLastChanges(workspaceTargetDir.getRemote() + "/fromSlave");
-                multiLastChangesSet = multiScmLastChanges.getLastChanges();
+                FilePath gitFolderOnSlave = new FilePath(workspace, "gitFolders");
+                gitFolderOnSlave.mkdirs();
+                workspace.copyRecursiveTo(dirScanner, gitFolderOnSlave, "Git folders");
+                Callable<List<MultiLastChanges>, IOException> getMultiLastChangesOnSlave = new MasterToSlaveCallable<List<MultiLastChanges>, IOException>() {
+                    public List<MultiLastChanges> call() throws IOException{
+                        List<MultiLastChanges> multiLastChangesList = new ArrayList<>();
+                        MultiScmLastChanges multiScmLastChanges = new MultiScmLastChanges(gitFolderOnSlave.getRemote());
+                        if(endRevision != null && !"".equalsIgnoreCase(endRevision.trim())){
+                            listener.getLogger().println("End revision ignored as multiple repos detected.");
+                        }
+                        multiLastChangesList.addAll(multiScmLastChanges.getLastChanges());
+                        return multiLastChangesList;
+                    }
+                };
+                List<MultiLastChanges> multiLastChangesFromSlave = launcher.getChannel().call(getMultiLastChangesOnSlave);
+                multiLastChangesList.addAll(multiLastChangesFromSlave);
             }
         }
-        MultiLastChangesBuildAction multiLastChangesBuildAction = new MultiLastChangesBuildAction(build, multiLastChangesSet,
+        MultiLastChangesBuildAction multiLastChangesBuildAction = new MultiLastChangesBuildAction(build, multiLastChangesList,
                 new MultiLastChangesConfig(endRevision, format, matching, showFiles, synchronisedScroll, matchWordsThreshold, matchingMaxComparisons));
         build.addAction(multiLastChangesBuildAction);
         listener.hyperlink("../" + build.getNumber() + "/" + MultiLastChangesBaseAction.BASE_URL, "Last changes published successfully!");
         listener.getLogger().println("");
         //can clean up now
-        if(isMultiScm || isGit){
-            workspaceTargetDir.child("fromSlave").deleteRecursive();
-        }
         build.setResult(Result.SUCCESS);
     }
 

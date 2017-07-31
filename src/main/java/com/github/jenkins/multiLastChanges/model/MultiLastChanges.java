@@ -2,10 +2,12 @@ package com.github.jenkins.multiLastChanges.model;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 
+import java.io.Serializable;
+
 /**
  * Created by rmpestano on 7/3/16.
  */
-public class MultiLastChanges {
+public class MultiLastChanges implements Serializable {
 
     private CommitInfo currentRevision; //information aboud head commit
     private CommitInfo endRevision;
