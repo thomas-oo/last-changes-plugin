@@ -70,7 +70,7 @@
                                     <a class="repoShow" href="javascript:;" onclick="showRepo(this,'${changes.currentRevision.commitId}')" style = "display:none; float:left; clear:both;">Show repo | Message: ${changes.currentRevision.commitMessage}</a>
                                     <br/>
                                     <div class="d2h-file-header" style="text-align:center;margin: 0 auto; overflow:auto">
-                                        <div class = "left" style="float:left;width:50%">
+                                        <div class = "right" style="float:right;width:50%">
                                             <b>Commit:</b> ${changes.currentRevision.commitId}
                                             <br/>
                                             <b>Author:</b> ${changes.currentRevision.commiterName}
@@ -82,7 +82,7 @@
                                             <b>Message:</b> ${changes.currentRevision.commitMessage}
                                             <br/>
                                         </div>
-                                        <div class="right" style="float:right;width:50%">
+                                        <div class="left" style="float:left;width:50%">
                                             <b>Commit:</b> ${changes.endRevision.commitId}
                                             <br/>
                                             <b>Author:</b> ${changes.endRevision.commiterName}

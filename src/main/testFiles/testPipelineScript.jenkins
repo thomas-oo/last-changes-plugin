@@ -1,34 +1,56 @@
 def execute(){
-  node() {
-    def STOP_ON_ERROR = '';
-    def mvnHome
-    def javaHome
-    def failed = false;
-    try{
-      stage('Preparation') { // for display purposes
-        // Get the Maven tool.
-        // ** NOTE: This 'M3' Maven tool must be configured
-        // **       in the global configuration.
-        checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/thomas-oo/last-changes-plugin']]])
+    node("${NODE}") {
+      def STOP_ON_ERROR = '';
+      def mvnHome
+      def javaHome
+      def failed = false;
+      def gituser = "${GITUSER}";
+      def mdngiturl = 'gerritmirror.mo.ca.am.ericsson.se:29418/mdn';
+      def argiturl   = 'gerritmirror.mo.ca.am.ericsson.se:29418';
+      def mdnrepos = ["mdn_vmutility", "openmdn"]; //, platform?
 
-      }
-      stage('Last Changes'){
-        echo 'In last changes'
-        step([$class: 'MultiLastChangesPublisher', format: 'LINE', matchWordsThreshold: '0.25', matching: 'NONE', matchingMaxComparisons: '1000', showFiles: true, synchronisedScroll: true, endRevision: ''])
-      }
-    }catch(Exception e){
-      failed = true
-      echo 'Build failed'
-    }finally{
-      if(!failed){
-        stage('Last Changes'){
-          echo 'In last changes'
-          step([$class: 'MultiLastChangesPublisher', format: 'LINE', matchWordsThreshold: '0.25', matching: 'NONE', matchingMaxComparisons: '1000', showFiles: true, synchronisedScroll: true, endRevision: ''])
+      def arrepos = ["mdnar/mdnar_chef","mdnar/mdnar_splunk_configurations"];
+      try{
+        stage('Preparation') { // for display purposes
+          // Get the Maven tool.
+          // ** NOTE: This 'M3' Maven tool must be configured
+          // **       in the global configuration.
+          //clean
+          //checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'project-euler']], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/thomas-oo/projectEulerHaskell']]])
+          //checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'assignmentB']], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/thomas-oo/assignmentB']]])
+          //checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'webhooks']], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/thomas-oo/webhooks']]])
+
+          String brname = "${BRANCH}";//'origin/master'
+          sh 'rm -rf build; mkdir -p build; mkdir -p mdnar';
+
+          // Get some code from a GitHub repository
+          for( repo in mdnrepos) {
+            checkout([$class: 'GitSCM',
+            branches: [[name: brname]],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: repo]],
+            submoduleCfg: [], userRemoteConfigs: [[url: "ssh://${gituser}@${mdngiturl}/${repo}.git"]]])
+
+          }
+
+          for( repo in arrepos) {
+            checkout([$class: 'GitSCM',
+            branches: [[name: brname]],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: "${repo}"]],
+            submoduleCfg: [], userRemoteConfigs: [[url: "ssh://${gituser}@${argiturl}/${repo}.git"]]])
+
+          }
         }
+      }catch(Exception e){
+        failed = true
+        echo 'Build failed'
+      }finally{
+        if(!failed){
+            step([$class: 'MultiLastChangesPublisher', format: 'LINE', matchWordsThreshold: '0.25', matching: 'NONE', matchingMaxComparisons: '1000', showFiles: true, synchronisedScroll: true, endRevision: ''])
+        }
+        echo 'In finally block'
       }
-      echo 'In finally block'
     }
-  }
-
 }
 return this
