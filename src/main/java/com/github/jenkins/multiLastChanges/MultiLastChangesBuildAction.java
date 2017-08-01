@@ -11,11 +11,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class MultiLastChangesBuildAction extends MultiLastChangesBaseAction {
+public class MultiLastChangesBuildAction extends MultiLastChangesBaseAction{
 
     private final Run<?, ?> build;
     private List<MultiLastChanges> buildChanges;
     private MultiLastChangesConfig config;
+    private List<MultiLastChangesProjectAction> projectActions;
 
     public MultiLastChangesBuildAction(Run<?, ?> build, MultiLastChanges multiLastChanges, MultiLastChangesConfig config) {
         this.build = build;
@@ -25,7 +26,10 @@ public class MultiLastChangesBuildAction extends MultiLastChangesBaseAction {
             config = new MultiLastChangesConfig();
         }
         this.config = config;
-        //removeOldCommitsFromAllBuildChanges();
+        List<MultiLastChangesProjectAction> projectActions = new ArrayList<>();
+        projectActions.add(new MultiLastChangesProjectAction(build.getParent()));
+        this.projectActions = projectActions;
+        removeOldCommitsFromAllBuildChanges();
     }
 
     public MultiLastChangesBuildAction(Run<?, ?> build, List<MultiLastChanges> multiLastChanges, MultiLastChangesConfig config) {
@@ -35,7 +39,7 @@ public class MultiLastChangesBuildAction extends MultiLastChangesBaseAction {
             config = new MultiLastChangesConfig();
         }
         this.config = config;
-        //removeOldCommitsFromAllBuildChanges();
+        removeOldCommitsFromAllBuildChanges();
     }
 
     @Override
@@ -62,7 +66,6 @@ public class MultiLastChangesBuildAction extends MultiLastChangesBaseAction {
 
     /**
      * Will remove LastChanges that have a commit date earlier than the last build's time.
-     * Todo: Decide if this is a useful feature or not
      */
     private void removeOldCommitsFromAllBuildChanges(){
         buildChanges.removeIf(l -> {
@@ -70,7 +73,7 @@ public class MultiLastChangesBuildAction extends MultiLastChangesBaseAction {
             if (build.getPreviousBuild() == null){ //if there was no previous build, don't remove
                 return notNewCommit;
             }
-            try {
+            try{
                 Date commitDate = CommitInfo.dateFormat.parse(l.getEndRevision().getCommitDate());
                 notNewCommit = commitDate.before(build.getPreviousBuild().getTime());
             } catch (ParseException e) {
