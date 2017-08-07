@@ -47,7 +47,6 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
-import hudson.util.DirScanner;
 import hudson.util.ListBoxModel;
 import jenkins.security.MasterToSlaveCallable;
 import jenkins.tasks.SimpleBuildStep;
@@ -136,13 +135,9 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
         listener.getLogger().println("Publishing build last changes...");
 
         List<MultiLastChanges> multiLastChangesList = new ArrayList<>();
-        DirScanner.Glob gitDirScanner = new DirScanner.Glob("**/.git/**", null, false);
         if(isPipeline){
             switch (scmType){
                 case GIT: {
-//                    FilePath gitFolderOnSlave = new FilePath(workspace, "gitFolders");
-//                    gitFolderOnSlave.mkdirs();
-//                    workspace.copyRecursiveTo(gitDirScanner, gitFolderOnSlave, "Git folders");
                     Callable<List<MultiLastChanges>, IOException> getMultiLastChangesOnSlave = new MasterToSlaveCallable<List<MultiLastChanges>, IOException>() {
                         public List<MultiLastChanges> call() throws IOException{
                             List<MultiLastChanges> multiLastChangesList = new ArrayList<>();
@@ -171,9 +166,6 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
         }else {
             switch (scmType){
                 case GIT: {
-//                    FilePath gitFolderOnSlave = new FilePath(workspace, "gitFolders");
-//                    gitFolderOnSlave.mkdirs();
-//                    workspace.copyRecursiveTo(gitDirScanner, gitFolderOnSlave, "Git folders");
                     Callable<List<MultiLastChanges>, IOException> getMultiLastChangesOnSlave = new MasterToSlaveCallable<List<MultiLastChanges>, IOException>() {
                         public List<MultiLastChanges> call() throws IOException{
                             List<MultiLastChanges> multiLastChangesList = new ArrayList<>();
@@ -213,9 +205,6 @@ public class MultiLastChangesPublisher extends Recorder implements SimpleBuildSt
                     break;
                 }
                 case MULTISCM:{
-//                    FilePath gitFolderOnSlave = new FilePath(workspace, "gitFolders");
-//                    gitFolderOnSlave.mkdirs();
-//                    workspace.copyRecursiveTo(gitDirScanner, gitFolderOnSlave, "Git folders");
                     Callable<List<MultiLastChanges>, IOException> getMultiLastChangesOnSlave = new MasterToSlaveCallable<List<MultiLastChanges>, IOException>() {
                         public List<MultiLastChanges> call() throws IOException{
                             List<MultiLastChanges> multiLastChangesList = new ArrayList<>();
